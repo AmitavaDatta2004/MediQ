@@ -1,7 +1,6 @@
 'use client';
-import { Star, MapPin } from 'lucide-react';
+import { Star, MapPin, ShieldCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,14 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useCollection, useFirestore, useMemoFirebase, useUser, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useUser, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { Doctor } from '@/lib/types';
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -26,11 +20,6 @@ export default function DoctorsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [isBooking, setIsBooking] = useState(false);
-  const [appointmentReason, setAppointmentReason] = useState('');
-  const [appointmentDateTime, setAppointmentDateTime] = useState('');
-
 
   const doctorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -39,44 +28,35 @@ export default function DoctorsPage() {
 
   const { data: doctors, isLoading } = useCollection<Doctor>(doctorsQuery);
 
-  const handleBookAppointment = async () => {
-    if (!user || !selectedDoctor || !appointmentDateTime || !appointmentReason) {
+  const handleGrantAccess = async (doctor: Doctor) => {
+    if (!user) {
         toast({
             variant: "destructive",
             title: "Error",
-            description: "Please fill in all the details for the appointment.",
+            description: "You must be logged in to grant access.",
         });
         return;
     }
 
-    const appointmentId = uuidv4();
+    const consentId = doctor.id; // Use doctor's ID as the consent document ID
+    const consentRef = doc(firestore, `patients/${user.uid}/data_consents`, consentId);
 
-    // Create appointment in patient's subcollection
-    const patientAppointmentRef = doc(firestore, `patients/${user.uid}/appointments`, appointmentId);
-    const appointmentData = {
-        id: appointmentId,
+    const consentData = {
+        id: consentId,
         patientId: user.uid,
-        doctorId: selectedDoctor.id,
-        appointmentDateTime,
-        reason: appointmentReason,
-        notes: '',
-        status: 'Upcoming' as const,
+        doctorId: doctor.id,
+        startDate: new Date().toISOString(),
+        // Consent valid for 1 year by default
+        endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
+        consentGiven: true,
     };
-    await setDocumentNonBlocking(patientAppointmentRef, appointmentData, { merge: false });
 
-    // Denormalize appointment in doctor's subcollection
-    const doctorAppointmentRef = doc(firestore, `doctors/${selectedDoctor.id}/appointments`, appointmentId);
-    await setDocumentNonBlocking(doctorAppointmentRef, appointmentData, { merge: false });
+    await setDocumentNonBlocking(consentRef, consentData, { merge: true });
 
     toast({
-        title: "Appointment Booked!",
-        description: `Your appointment with ${selectedDoctor.name} has been scheduled.`,
+        title: "Access Granted",
+        description: `You have successfully granted Dr. ${doctor.lastName} access to your medical data.`,
     });
-
-    setIsBooking(false);
-    setSelectedDoctor(null);
-    setAppointmentReason('');
-    setAppointmentDateTime('');
 };
 
 
@@ -89,7 +69,7 @@ export default function DoctorsPage() {
     <div className="space-y-6">
         <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Find a Doctor</h1>
-            <p className="text-muted-foreground">Search for specialists near you and book an appointment.</p>
+            <p className="text-muted-foreground">Search for specialists and grant them access to your records to begin consultation.</p>
         </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {doctors && doctors.map((doctor) => (
@@ -116,36 +96,15 @@ export default function DoctorsPage() {
                 </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={() => { setSelectedDoctor(doctor); setIsBooking(true); }}>Book Appointment</Button>
+              <Button className="w-full" onClick={() => handleGrantAccess(doctor)}>
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                Grant Access
+              </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
     </div>
-    <Dialog open={isBooking} onOpenChange={setIsBooking}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Book Appointment with {selectedDoctor?.name}</DialogTitle>
-                <DialogDescription>
-                    Please provide the details for your appointment.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="datetime">Date and Time</Label>
-                    <Input id="datetime" type="datetime-local" value={appointmentDateTime} onChange={(e) => setAppointmentDateTime(e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="reason">Reason for Appointment</Label>
-                    <Textarea id="reason" placeholder="e.g., Annual check-up, follow-up..." value={appointmentReason} onChange={(e) => setAppointmentReason(e.target.value)} />
-                </div>
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsBooking(false)}>Cancel</Button>
-                <Button onClick={handleBookAppointment}>Confirm Booking</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
     </>
   );
 }

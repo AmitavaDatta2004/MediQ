@@ -28,11 +28,26 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Appointment, Doctor } from '@/lib/types';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
+import { setDocumentNonBlocking } from '@/firebase';
+import { PlusCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AppointmentsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const [isBooking, setIsBooking] = useState(false);
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  const [appointmentReason, setAppointmentReason] = useState('');
+  const [appointmentDateTime, setAppointmentDateTime] = useState('');
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -52,9 +67,11 @@ export default function AppointmentsPage() {
       return query(collection(firestore, 'doctors'), where('id', 'in', doctorIds));
     }, [firestore, doctorIds])
   );
+  
+  const { data: allDoctors } = useCollection<Doctor>(useMemoFirebase(() => collection(firestore, 'doctors'), [firestore]));
 
   const getDoctor = (doctorId: string) => {
-    return doctors?.find(d => d.id === doctorId);
+    return doctors?.find(d => d.id === doctorId) ?? allDoctors?.find(d => d.id === doctorId);
   }
 
   const getStatusVariant = (status: Appointment['status']) => {
@@ -69,18 +86,68 @@ export default function AppointmentsPage() {
             return 'outline';
     }
   }
+  
+  const handleBookAppointment = async () => {
+    if (!user || !selectedDoctorId || !appointmentDateTime || !appointmentReason) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Please fill in all the details for the appointment.",
+        });
+        return;
+    }
+
+    const appointmentId = uuidv4();
+
+    const appointmentData = {
+        id: appointmentId,
+        patientId: user.uid,
+        doctorId: selectedDoctorId,
+        appointmentDateTime,
+        reason: appointmentReason,
+        notes: '',
+        status: 'Upcoming' as const,
+    };
+    
+    // Create appointment in patient's subcollection
+    const patientAppointmentRef = doc(firestore, `patients/${user.uid}/appointments`, appointmentId);
+    await setDocumentNonBlocking(patientAppointmentRef, appointmentData, { merge: false });
+
+    // Denormalize appointment in doctor's subcollection
+    const doctorAppointmentRef = doc(firestore, `doctors/${selectedDoctorId}/appointments`, appointmentId);
+    await setDocumentNonBlocking(doctorAppointmentRef, appointmentData, { merge: false });
+
+    const selectedDoctor = getDoctor(selectedDoctorId);
+
+    toast({
+        title: "Appointment Booked!",
+        description: `Your appointment with ${selectedDoctor?.name} has been scheduled.`,
+    });
+
+    setIsBooking(false);
+    setAppointmentReason('');
+    setAppointmentDateTime('');
+    setSelectedDoctorId('');
+};
 
   if (isLoading) {
     return <div>Loading appointments...</div>
   }
 
   return (
+    <>
     <Card>
-      <CardHeader>
-        <CardTitle>Appointment History</CardTitle>
-        <CardDescription>
-          A log of your past and upcoming medical appointments.
-        </CardDescription>
+      <CardHeader className="flex flex-row justify-between items-center">
+        <div>
+            <CardTitle>Appointment History</CardTitle>
+            <CardDescription>
+            A log of your past and upcoming medical appointments.
+            </CardDescription>
+        </div>
+        <Button onClick={() => setIsBooking(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Book Appointment
+        </Button>
       </CardHeader>
       <CardContent>
         <Table>
@@ -144,5 +211,46 @@ export default function AppointmentsPage() {
         </Table>
       </CardContent>
     </Card>
+
+    <Dialog open={isBooking} onOpenChange={setIsBooking}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Book a New Appointment</DialogTitle>
+                <DialogDescription>
+                    Please provide the details for your appointment.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                    <Label htmlFor="doctor">Doctor</Label>
+                    <Select onValueChange={setSelectedDoctorId}>
+                        <SelectTrigger id="doctor">
+                            <SelectValue placeholder="Select a doctor..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {allDoctors?.map((doc) => (
+                                <SelectItem key={doc.id} value={doc.id}>
+                                    {doc.name} - {doc.specialty}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="datetime">Date and Time</Label>
+                    <Input id="datetime" type="datetime-local" value={appointmentDateTime} onChange={(e) => setAppointmentDateTime(e.target.value)} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="reason">Reason for Appointment</Label>
+                    <Textarea id="reason" placeholder="e.g., Annual check-up, follow-up..." value={appointmentReason} onChange={(e) => setAppointmentReason(e.target.value)} />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsBooking(false)}>Cancel</Button>
+                <Button onClick={handleBookAppointment}>Confirm Booking</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
