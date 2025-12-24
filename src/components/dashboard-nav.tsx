@@ -79,7 +79,7 @@ export function DashboardNav({ userRole }: { userRole?: UserRole }) {
     title = "Doctor Portal";
   } else if (userRole === 'medicine_store') {
     navItems = storeNavItems;
-    bottom/NavItems = storeBottomNavItems;
+    bottomNavItems = storeBottomNavItems;
     title = "Pharmacy Portal";
   }
 
