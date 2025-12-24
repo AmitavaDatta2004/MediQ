@@ -16,6 +16,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState('password123');
 
     const handleLogin = () => {
+        if (!email || !password) return;
         initiateEmailSignIn(auth, email, password);
         router.push('/dashboard');
     }
@@ -77,7 +78,7 @@ export default function LoginPage() {
           </Card>
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{' '}
-            <Link href="#" className="underline">
+            <Link href="/signup" className="underline">
               Sign up
             </Link>
           </div>

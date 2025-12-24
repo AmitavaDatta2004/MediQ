@@ -16,6 +16,7 @@ export default function DoctorLoginPage() {
     const [password, setPassword] = useState('');
 
     const handleLogin = () => {
+        if (!email || !password) return;
         initiateEmailSignIn(auth, email, password);
         router.push('/dashboard');
     }
@@ -75,6 +76,12 @@ export default function DoctorLoginPage() {
                 </div>
             </CardContent>
           </Card>
+           <div className="mt-4 text-center text-sm">
+            Don&apos;t have an account?{' '}
+            <Link href="/doctor-signup" className="underline">
+              Sign up
+            </Link>
+          </div>
         </div>
       </div>
       <div className="hidden bg-muted lg:flex items-center justify-center flex-col text-center p-8">
