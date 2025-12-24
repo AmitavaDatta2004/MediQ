@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useCollection, useFirestore, useUser, setDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useUser, setDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { Doctor } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
