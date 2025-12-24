@@ -18,6 +18,10 @@ import { analyzeScanForAnomaliesAction } from '@/app/actions';
 import type { AnalyzeScanForAnomaliesOutput } from '@/ai/flows/analyze-scan-for-anomalies';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 
 const placeholderImageUrl = "https://picsum.photos/seed/201/600/400";
 
@@ -28,6 +32,8 @@ export default function ScanAnalysisPage() {
   const [scanType, setScanType] = useState<'X-ray' | 'CT' | 'MRI' | ''>('');
   const [patientDetails, setPatientDetails] = useState('');
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -42,7 +48,7 @@ export default function ScanAnalysisPage() {
   };
 
   const handleAnalysis = async () => {
-    if (!previewUrl || !scanType) {
+    if (!previewUrl || !scanType || !user) {
       toast({
         variant: "destructive",
         title: "Missing Information",
@@ -59,9 +65,33 @@ export default function ScanAnalysisPage() {
         patientDetails,
       });
       setAnalysis(result);
+
+      // 1. Upload scan image to Firebase Storage
+      const storage = getStorage();
+      const storageRef = ref(storage, `patients/${user.uid}/scan_images/${uuidv4()}`);
+      const snapshot = await uploadString(storageRef, previewUrl, 'data_url');
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      // 2. Save analysis to Firestore
+      const scanId = uuidv4();
+      const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
+      await addDocumentNonBlocking(scanCollectionRef, {
+          id: scanId,
+          patientId: user.uid,
+          uploadDate: new Date().toISOString(),
+          scanType,
+          imageUrl: downloadURL,
+          aiAnalysis: {
+            anomaliesDetected: result.anomaliesDetected,
+            anomalyReport: result.anomalyReport,
+            heatmapDataUri: result.heatmapDataUri, // This could also be stored in Storage if it's large
+            urgencyClassification: result.urgencyClassification
+          }
+      });
+      
       toast({
-        title: "Analysis Complete",
-        description: "Your scan has been successfully analyzed.",
+        title: "Analysis Complete & Saved",
+        description: "Your scan has been analyzed and saved to your records.",
       });
     } catch (error) {
       console.error(error);
@@ -139,7 +169,7 @@ export default function ScanAnalysisPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
+                  Analyzing & Saving...
                 </>
               ) : (
                 'Analyze Scan'
@@ -156,7 +186,7 @@ export default function ScanAnalysisPage() {
              <CardDescription>
               AI-detected potential anomalies. Always consult a specialist.
             </CardDescription>
-          </CardHeader>
+          </Header>
           <CardContent className="space-y-4">
             {analysis ? (
               <>

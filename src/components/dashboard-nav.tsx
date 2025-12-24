@@ -12,6 +12,7 @@ import {
   Truck,
   User,
   ShieldCheck,
+  FolderKanban,
 } from 'lucide-react';
 
 import {
@@ -27,6 +28,7 @@ import { Separator } from './ui/separator';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/dashboard/records', icon: FolderKanban, label: 'My Records'},
   { href: '/dashboard/report-analysis', icon: FileScan, label: 'Report Analysis' },
   { href: '/dashboard/scan-analysis', icon: HeartPulse, label: 'Scan Analysis' },
   { href: '/dashboard/doctors', icon: Stethoscope, label: 'Find a Doctor' },

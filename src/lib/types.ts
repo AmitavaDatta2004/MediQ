@@ -80,3 +80,27 @@ export type MedicineStore = {
   email: string;
 };
 
+export type MedicalReport = {
+    id: string;
+    patientId: string;
+    uploadDate: string;
+    reportType: string;
+    fileUrl: string;
+    aiSummary: string;
+    aiPotentialIssues: string;
+    aiNextSteps: string;
+}
+
+export type ScanImage = {
+    id: string;
+    patientId: string;
+    uploadDate: string;
+    scanType: 'X-ray' | 'CT' | 'MRI';
+    imageUrl: string;
+    aiAnalysis: {
+        anomaliesDetected: boolean;
+        anomalyReport: string;
+        heatmapDataUri?: string;
+        urgencyClassification: 'Emergency' | 'Urgent' | 'Routine' | 'Normal';
+    }
+}

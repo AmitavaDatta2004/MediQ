@@ -8,16 +8,22 @@ import { useToast } from '@/hooks/use-toast';
 import { summarizeMedicalReportAction } from '@/app/actions';
 import type { SummarizeMedicalReportOutput } from '@/ai/flows/summarize-medical-report';
 import { Separator } from '@/components/ui/separator';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 
 export default function ReportAnalysisPage() {
   const [report, setReport] = useState<SummarizeMedicalReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState('');
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     setIsLoading(true);
     setReport(null);
@@ -29,9 +35,30 @@ export default function ReportAnalysisPage() {
       try {
         const result = await summarizeMedicalReportAction({ reportDataUri: dataUri });
         setReport(result);
+        
+        // 1. Upload file to Firebase Storage
+        const storage = getStorage();
+        const storageRef = ref(storage, `patients/${user.uid}/medical_reports/${uuidv4()}_${file.name}`);
+        const snapshot = await uploadString(storageRef, dataUri, 'data_url');
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        // 2. Save analysis to Firestore
+        const reportId = uuidv4();
+        const reportCollectionRef = collection(firestore, `patients/${user.uid}/medical_reports`);
+        await addDocumentNonBlocking(reportCollectionRef, {
+            id: reportId,
+            patientId: user.uid,
+            uploadDate: new Date().toISOString(),
+            reportType: file.type.startsWith('image') ? 'Image' : 'PDF Document',
+            fileUrl: downloadURL,
+            aiSummary: result.summary,
+            aiPotentialIssues: result.potentialIssues,
+            aiNextSteps: result.nextSteps,
+        });
+
         toast({
-          title: "Analysis Complete",
-          description: "Your medical report has been successfully analyzed.",
+          title: "Analysis Complete & Saved",
+          description: "Your medical report has been analyzed and saved to your records.",
         });
       } catch (error) {
         console.error(error);
@@ -68,7 +95,7 @@ export default function ReportAnalysisPage() {
               {isLoading && (
                 <div className="flex items-center justify-center gap-2 text-muted-foreground">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Analyzing report...</span>
+                  <span>Analyzing and saving...</span>
                 </div>
               )}
             </div>
