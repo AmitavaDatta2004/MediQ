@@ -1,34 +1,32 @@
 
 export type Patient = {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  avatarUrl: string;
-  dob: string;
-  bloodType: string;
-  allergies: string[];
-  chronicConditions: string[];
+  avatarUrl?: string;
+  dateOfBirth: string;
 };
 
 export type Doctor = {
   id: string;
   name: string;
+  firstName: string;
+  lastName: string;
   specialty: string;
-  avatarUrl: string;
+  avatarUrl?: string;
   location: string;
   rating: number;
   reviews: number;
-  availability: Record<string, string[]>; // date -> [time slots]
 };
 
 export type Appointment = {
   id: string;
   patientId: string;
   doctorId: string;
-  date: string;
-  time: string;
-  status: 'Upcoming' | 'Completed' | 'Cancelled';
-  reason: string;
+  appointmentDateTime: string;
+  notes?: string;
+  reason?: string;
 };
 
 export type Prescription = {
@@ -36,6 +34,10 @@ export type Prescription = {
   patientId: string;
   doctorId: string;
   date: string;
+  medicineName: string;
+  dosage: string;
+  frequency: string;
+  notes?: string;
   medicines: {
     name: string;
     dosage: string;
@@ -43,20 +45,32 @@ export type Prescription = {
   }[];
 };
 
-export type MedicineOrder = {
+export type Order = {
   id: string;
+  patientId: string;
+  medicineStoreId: string;
   prescriptionId: string;
-  storeName: string;
-  status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
   orderDate: string;
-  estimatedDelivery: string;
+  status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
 };
 
-export type Consent = {
+export type DataConsent = {
   id: string;
   doctorId: string;
   patientId: string;
-  grantedDate: string;
-  expiryDate: string;
-  status: 'Active' | 'Expired' | 'Revoked';
+  startDate: string;
+  endDate: string;
+  consentGiven: boolean;
+};
+
+export type Allergy = {
+    id: string;
+    name: string;
+    reaction: string;
+};
+
+export type ChronicCondition = {
+    id: string;
+    name: string;
+    diagnosisDate: string;
 };

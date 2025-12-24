@@ -1,3 +1,4 @@
+'use client';
 import { MoreHorizontal, ShieldCheck, ShieldX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,10 +24,45 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { consents, doctors } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { DataConsent, Doctor } from '@/lib/types';
+import { useMemo } from 'react';
 
 export default function ConsentPage() {
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    const consentsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, `users/${user.uid}/data_consents`));
+    }, [firestore, user]);
+
+    const { data: consents, isLoading } = useCollection<DataConsent>(consentsQuery);
+
+    const doctorIds = useMemo(() => {
+        if (!consents) return [];
+        return [...new Set(consents.map(c => c.doctorId))];
+    }, [consents]);
+
+    const doctorsQuery = useMemoFirebase(() => {
+        if (!firestore || doctorIds.length === 0) return null;
+        return query(collection(firestore, 'doctors'), where('id', 'in', doctorIds));
+    }, [firestore, doctorIds]);
+
+    const { data: doctors } = useCollection<Doctor>(doctorsQuery);
+
+    const getDoctor = (doctorId: string) => {
+        return doctors?.find(d => d.id === doctorId);
+    }
+    
+    const getStatus = (consent: DataConsent) => {
+        if (!consent.consentGiven) return 'Revoked';
+        if (new Date(consent.endDate) < new Date()) return 'Expired';
+        return 'Active';
+    }
+
     const getStatusInfo = (status: string) => {
         switch(status) {
             case 'Active': return { variant: 'default', icon: <ShieldCheck className="h-4 w-4 text-green-600" /> };
@@ -34,6 +70,10 @@ export default function ConsentPage() {
             case 'Revoked': return { variant: 'destructive', icon: <ShieldX className="h-4 w-4" /> };
             default: return { variant: 'default', icon: null };
         }
+    }
+
+    if (isLoading) {
+        return <div>Loading consents...</div>;
     }
 
   return (
@@ -58,9 +98,10 @@ export default function ConsentPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {consents.map((consent) => {
-              const doctor = doctors.find(d => d.id === consent.doctorId);
-              const statusInfo = getStatusInfo(consent.status);
+            {consents && consents.map((consent) => {
+              const doctor = getDoctor(consent.doctorId);
+              const status = getStatus(consent);
+              const statusInfo = getStatusInfo(status);
               return (
                 <TableRow key={consent.id}>
                   <TableCell className="font-medium">
@@ -75,13 +116,13 @@ export default function ConsentPage() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">{consent.grantedDate}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{consent.expiryDate}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{new Date(consent.startDate).toLocaleDateString()}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{new Date(consent.endDate).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge variant={statusInfo.variant as any}>
                         <div className="flex items-center gap-2">
                             {statusInfo.icon}
-                            {consent.status}
+                            {status}
                         </div>
                     </Badge>
                   </TableCell>
@@ -96,8 +137,8 @@ export default function ConsentPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem>View Access Logs</DropdownMenuItem>
-                        {consent.status === 'Active' && <DropdownMenuItem>Extend Access</DropdownMenuItem>}
-                        {consent.status === 'Active' && <DropdownMenuItem className="text-destructive">Revoke Access</DropdownMenuItem>}
+                        {status === 'Active' && <DropdownMenuItem>Extend Access</DropdownMenuItem>}
+                        {status === 'Active' && <DropdownMenuItem className="text-destructive">Revoke Access</DropdownMenuItem>}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

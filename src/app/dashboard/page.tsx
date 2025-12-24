@@ -36,7 +36,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { appointments, doctors, patient } from '@/lib/data';
+import { useDoc, useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc, collection, query, where, limit } from 'firebase/firestore';
+import type { Patient, Doctor, Appointment } from '@/lib/types';
 
 const chartData = [
   { month: 'Jan', heartRate: 72 },
@@ -55,20 +57,53 @@ const chartConfig = {
 };
 
 export default function Dashboard() {
-  const upcomingAppointment = appointments.find(
-    (a) => a.status === 'Upcoming'
-  );
-  const doctor = upcomingAppointment
-    ? doctors.find((d) => d.id === upcomingAppointment.doctorId)
-    : null;
+  const { user } = useUser();
+  const firestore = useFirestore();
 
+  const patientDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: patient } = useDoc<Patient>(patientDocRef);
+
+  const appointmentsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/appointments`), limit(3));
+  }, [firestore, user]);
+  const { data: appointments } = useCollection<Appointment>(appointmentsQuery);
+
+  const upcomingAppointmentsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/appointments`), where('appointmentDateTime', '>', new Date().toISOString()), limit(1));
+  }, [firestore, user]);
+  const { data: upcomingAppointments } = useCollection<Appointment>(upcomingAppointmentsQuery);
+  const upcomingAppointment = upcomingAppointments?.[0];
+
+  const doctorIds = useMemoFirebase(() => {
+    if (!appointments && !upcomingAppointment) return [];
+    const ids = new Set<string>();
+    if (appointments) appointments.forEach(a => ids.add(a.doctorId));
+    if (upcomingAppointment) ids.add(upcomingAppointment.doctorId);
+    return Array.from(ids);
+  }, [appointments, upcomingAppointment]);
+
+  const doctorsQuery = useMemoFirebase(() => {
+    if (!firestore || doctorIds.length === 0) return null;
+    return query(collection(firestore, 'doctors'), where('id', 'in', doctorIds));
+  }, [firestore, doctorIds]);
+  const { data: doctors } = useCollection<Doctor>(doctorsQuery);
+
+  const doctor = upcomingAppointment
+    ? doctors?.find((d) => d.id === upcomingAppointment.doctorId)
+    : null;
+    
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Welcome Back, {patient.name.split(' ')[0]}!
+              Welcome Back, {patient?.firstName}!
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -91,7 +126,7 @@ export default function Dashboard() {
               <>
                 <div className="text-xl font-bold">{doctor.name}</div>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(upcomingAppointment.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at {upcomingAppointment.time}
+                  {new Date(upcomingAppointment.appointmentDateTime).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
                 </p>
               </>
             ) : (
@@ -174,8 +209,9 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {appointments.slice(0, 3).map((appointment) => {
-                  const apptDoctor = doctors.find(d => d.id === appointment.doctorId);
+                {appointments && appointments.slice(0, 3).map((appointment) => {
+                  const apptDoctor = doctors?.find(d => d.id === appointment.doctorId);
+                  const status = new Date(appointment.appointmentDateTime) > new Date() ? 'Upcoming' : 'Completed';
                   return (
                     <TableRow key={appointment.id}>
                       <TableCell>
@@ -184,9 +220,9 @@ export default function Dashboard() {
                           {apptDoctor?.specialty}
                         </div>
                       </TableCell>
-                      <TableCell className='hidden sm:table-cell'>{appointment.date}</TableCell>
+                      <TableCell className='hidden sm:table-cell'>{new Date(appointment.appointmentDateTime).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
-                        <Badge variant={appointment.status === 'Upcoming' ? 'default' : 'secondary'}>{appointment.status}</Badge>
+                        <Badge variant={status === 'Upcoming' ? 'default' : 'secondary'}>{status}</Badge>
                       </TableCell>
                     </TableRow>
                   );

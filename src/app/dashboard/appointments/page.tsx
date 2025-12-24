@@ -1,3 +1,4 @@
+'use client';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,10 +24,42 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { appointments, doctors } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { Appointment, Doctor } from '@/lib/types';
 
 export default function AppointmentsPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const appointmentsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/appointments`));
+  }, [firestore, user]);
+
+  const { data: appointments, isLoading } = useCollection<Appointment>(appointmentsQuery);
+
+  const doctorIds = useMemoFirebase(() => {
+    if (!appointments) return [];
+    return [...new Set(appointments.map(a => a.doctorId))];
+  }, [appointments]);
+
+  const { data: doctors } = useCollection<Doctor>(
+    useMemoFirebase(() => {
+      if (!firestore || doctorIds.length === 0) return null;
+      return query(collection(firestore, 'doctors'), where('id', 'in', doctorIds));
+    }, [firestore, doctorIds])
+  );
+
+  const getDoctor = (doctorId: string) => {
+    return doctors?.find(d => d.id === doctorId);
+  }
+
+  if (isLoading) {
+    return <div>Loading appointments...</div>
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -50,8 +83,8 @@ export default function AppointmentsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {appointments.map((appointment) => {
-              const doctor = doctors.find(d => d.id === appointment.doctorId);
+            {appointments && appointments.map((appointment) => {
+              const doctor = getDoctor(appointment.doctorId);
               return (
                 <TableRow key={appointment.id}>
                   <TableCell className="font-medium">
@@ -67,11 +100,11 @@ export default function AppointmentsPage() {
                     </div>
                   </TableCell>
                   <TableCell>{appointment.reason}</TableCell>
-                  <TableCell className="hidden md:table-cell">{appointment.date}</TableCell>
-                  <TableCell className="hidden md:table-cell">{appointment.time}</TableCell>
+                  <TableCell className="hidden md:table-cell">{new Date(appointment.appointmentDateTime).toLocaleDateString()}</TableCell>
+                  <TableCell className="hidden md:table-cell">{new Date(appointment.appointmentDateTime).toLocaleTimeString()}</TableCell>
                   <TableCell>
-                    <Badge variant={appointment.status === 'Upcoming' ? 'default' : 'secondary'}>
-                      {appointment.status}
+                    <Badge variant={new Date(appointment.appointmentDateTime) > new Date() ? 'default' : 'secondary'}>
+                      {new Date(appointment.appointmentDateTime) > new Date() ? 'Upcoming' : 'Completed'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -85,8 +118,8 @@ export default function AppointmentsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem>View Details</DropdownMenuItem>
-                        {appointment.status === 'Upcoming' && <DropdownMenuItem>Reschedule</DropdownMenuItem>}
-                        {appointment.status === 'Upcoming' && <DropdownMenuItem className="text-destructive">Cancel</DropdownMenuItem>}
+                        {new Date(appointment.appointmentDateTime) > new Date() && <DropdownMenuItem>Reschedule</DropdownMenuItem>}
+                        {new Date(appointment.appointmentDateTime) > new Date() && <DropdownMenuItem className="text-destructive">Cancel</DropdownMenuItem>}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

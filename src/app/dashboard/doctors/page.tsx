@@ -1,6 +1,5 @@
-import Image from 'next/image';
+'use client';
 import { Star, MapPin } from 'lucide-react';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,9 +11,23 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { doctors } from '@/lib/data';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Doctor } from '@/lib/types';
 
 export default function DoctorsPage() {
+  const firestore = useFirestore();
+  const doctorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'doctors');
+  }, [firestore]);
+
+  const { data: doctors, isLoading } = useCollection<Doctor>(doctorsQuery);
+
+  if (isLoading) {
+    return <div>Loading doctors...</div>
+  }
+
   return (
     <div className="space-y-6">
         <div>
@@ -22,7 +35,7 @@ export default function DoctorsPage() {
             <p className="text-muted-foreground">Search for specialists near you and book an appointment.</p>
         </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {doctors.map((doctor) => (
+        {doctors && doctors.map((doctor) => (
           <Card key={doctor.id} className="flex flex-col">
             <CardHeader className="flex-row items-center gap-4">
               <Avatar className="h-16 w-16">

@@ -1,3 +1,4 @@
+'use client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,7 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { medicineOrders, prescriptions } from '@/lib/data';
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { Order, Prescription } from '@/lib/types';
+import { useMemo } from 'react';
+
 
 const getStatusBadgeVariant = (status: string) => {
     switch(status) {
@@ -20,6 +25,36 @@ const getStatusBadgeVariant = (status: string) => {
 }
 
 export default function OrdersPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const ordersQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/orders`));
+  }, [firestore, user]);
+
+  const { data: medicineOrders, isLoading } = useCollection<Order>(ordersQuery);
+
+  const prescriptionIds = useMemo(() => {
+    if (!medicineOrders) return [];
+    return [...new Set(medicineOrders.map(o => o.prescriptionId))];
+  }, [medicineOrders]);
+
+  const prescriptionsQuery = useMemoFirebase(() => {
+    if (!firestore || !user || prescriptionIds.length === 0) return null;
+    return query(collection(firestore, `users/${user.uid}/prescriptions`), where('id', 'in', prescriptionIds));
+  }, [firestore, user, prescriptionIds]);
+
+  const { data: prescriptions } = useCollection<Prescription>(prescriptionsQuery);
+
+  const getPrescription = (prescriptionId: string) => {
+    return prescriptions?.find(p => p.id === prescriptionId);
+  }
+
+  if (isLoading) {
+    return <div>Loading orders...</div>;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -30,14 +65,14 @@ export default function OrdersPage() {
       </CardHeader>
       <CardContent>
         <div className="space-y-8">
-          {medicineOrders.map((order) => {
-            const prescription = prescriptions.find(p => p.id === order.prescriptionId);
+          {medicineOrders && medicineOrders.map((order) => {
+            const prescription = getPrescription(order.prescriptionId);
             return (
               <div key={order.id} className="grid items-start gap-4 sm:grid-cols-3">
                 <div className='sm:col-span-2'>
                   <h3 className="text-lg font-semibold">Order #{order.id}</h3>
                   <p className="text-sm text-muted-foreground">
-                    From: {order.storeName} | Ordered on: {order.orderDate}
+                    Ordered on: {new Date(order.orderDate).toLocaleDateString()}
                   </p>
                   <div className="mt-2 space-y-1">
                     {prescription?.medicines.map((med, index) => (
@@ -49,9 +84,7 @@ export default function OrdersPage() {
                   <Badge variant={getStatusBadgeVariant(order.status)}>
                     {order.status}
                   </Badge>
-                  <p className="text-sm text-muted-foreground">
-                    ETA: {order.estimatedDelivery}
-                  </p>
+                  
                   <div className="flex gap-2 mt-2">
                     <Button variant="outline" size="sm">
                       Track Order
