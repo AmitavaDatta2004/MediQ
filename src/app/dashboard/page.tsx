@@ -37,8 +37,9 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import { useDoc, useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, where, limit } from 'firebase/firestore';
+import { doc, collection, query, where, limit, orderBy } from 'firebase/firestore';
 import type { Patient, Doctor, Appointment } from '@/lib/types';
+import { useMemo } from 'react';
 
 const chartData = [
   { month: 'Jan', heartRate: 72 },
@@ -62,24 +63,24 @@ export default function Dashboard() {
 
   const patientDocRef = useMemoFirebase(() => {
     if (!user) return null;
-    return doc(firestore, 'users', user.uid);
+    return doc(firestore, 'patients', user.uid);
   }, [firestore, user]);
   const { data: patient } = useDoc<Patient>(patientDocRef);
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(collection(firestore, `users/${user.uid}/appointments`), limit(3));
+    return query(collection(firestore, `patients/${user.uid}/appointments`), orderBy('appointmentDateTime', 'desc'), limit(3));
   }, [firestore, user]);
   const { data: appointments } = useCollection<Appointment>(appointmentsQuery);
 
   const upcomingAppointmentsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(collection(firestore, `users/${user.uid}/appointments`), where('appointmentDateTime', '>', new Date().toISOString()), limit(1));
+    return query(collection(firestore, `patients/${user.uid}/appointments`), where('appointmentDateTime', '>', new Date().toISOString()), orderBy('appointmentDateTime', 'asc'), limit(1));
   }, [firestore, user]);
   const { data: upcomingAppointments } = useCollection<Appointment>(upcomingAppointmentsQuery);
   const upcomingAppointment = upcomingAppointments?.[0];
 
-  const doctorIds = useMemoFirebase(() => {
+  const doctorIds = useMemo(() => {
     if (!appointments && !upcomingAppointment) return [];
     const ids = new Set<string>();
     if (appointments) appointments.forEach(a => ids.add(a.doctorId));

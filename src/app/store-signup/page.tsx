@@ -44,6 +44,10 @@ export default function StoreSignupPage() {
             const storeDocRef = doc(firestore, 'medicine_stores', user.uid);
             setDocumentNonBlocking(storeDocRef, storeData, { merge: true });
 
+            // Create base user role document
+            const userDocRef = doc(firestore, 'users', user.uid);
+            setDocumentNonBlocking(userDocRef, { id: user.uid, email: user.email, role: 'medicine_store' }, { merge: true });
+
             router.push('/dashboard');
         } catch (error: any) {
             setError(error.message);

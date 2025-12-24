@@ -32,6 +32,7 @@ export default function SignupPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
+            // Create patient profile
             const patientData = {
                 id: user.uid,
                 firstName,
@@ -39,9 +40,12 @@ export default function SignupPage() {
                 email: user.email,
                 dateOfBirth: '', // Add a field for this in the form if needed
             };
-            
+            const patientDocRef = doc(firestore, 'patients', user.uid);
+            setDocumentNonBlocking(patientDocRef, patientData, { merge: true });
+
+            // Create base user role document
             const userDocRef = doc(firestore, 'users', user.uid);
-            setDocumentNonBlocking(userDocRef, patientData, { merge: true });
+            setDocumentNonBlocking(userDocRef, { id: user.uid, email: user.email, role: 'patient' }, { merge: true });
 
             router.push('/dashboard');
         } catch (error: any) {

@@ -33,6 +33,7 @@ export default function DoctorSignupPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
+            // Create doctor profile
             const doctorData = {
                 id: user.uid,
                 firstName,
@@ -40,13 +41,17 @@ export default function DoctorSignupPage() {
                 name: `Dr. ${firstName} ${lastName}`,
                 specialty,
                 email: user.email,
-                location: '', // Add fields for this in the form if needed
-                rating: 0,
-                reviews: 0,
+                location: 'Online',
+                rating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10, // Mock rating between 3.5 and 5
+                reviews: Math.floor(Math.random() * 200) + 50, // Mock reviews between 50 and 250
             };
             
-            const userDocRef = doc(firestore, 'doctors', user.uid);
-            setDocumentNonBlocking(userDocRef, doctorData, { merge: true });
+            const doctorDocRef = doc(firestore, 'doctors', user.uid);
+            setDocumentNonBlocking(doctorDocRef, doctorData, { merge: true });
+
+             // Create base user role document
+            const userDocRef = doc(firestore, 'users', user.uid);
+            setDocumentNonBlocking(userDocRef, { id: user.uid, email: user.email, role: 'doctor' }, { merge: true });
 
             router.push('/dashboard');
         } catch (error: any) {

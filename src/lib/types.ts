@@ -12,7 +12,7 @@ export type Doctor = {
   id: string;
   name: string;
   firstName: string;
-  lastName: string;
+  lastName:string;
   specialty: string;
   avatarUrl?: string;
   location: string;
@@ -34,15 +34,12 @@ export type Prescription = {
   patientId: string;
   doctorId: string;
   date: string;
-  medicineName: string;
-  dosage: string;
-  frequency: string;
-  notes?: string;
   medicines: {
     name: string;
     dosage: string;
     frequency: string;
   }[];
+  notes?: string;
 };
 
 export type Order = {
@@ -74,3 +71,12 @@ export type ChronicCondition = {
     name: string;
     diagnosisDate: string;
 };
+
+export type MedicineStore = {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+};
+

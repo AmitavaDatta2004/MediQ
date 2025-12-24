@@ -30,7 +30,7 @@ export default function OrdersPage() {
 
   const ordersQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(collection(firestore, `users/${user.uid}/orders`));
+    return query(collection(firestore, `patients/${user.uid}/orders`));
   }, [firestore, user]);
 
   const { data: medicineOrders, isLoading } = useCollection<Order>(ordersQuery);
@@ -42,7 +42,7 @@ export default function OrdersPage() {
 
   const prescriptionsQuery = useMemoFirebase(() => {
     if (!firestore || !user || prescriptionIds.length === 0) return null;
-    return query(collection(firestore, `users/${user.uid}/prescriptions`), where('id', 'in', prescriptionIds));
+    return query(collection(firestore, `patients/${user.uid}/prescriptions`), where('id', 'in', prescriptionIds));
   }, [firestore, user, prescriptionIds]);
 
   const { data: prescriptions } = useCollection<Prescription>(prescriptionsQuery);
@@ -81,7 +81,7 @@ export default function OrdersPage() {
                   </div>
                 </div>
                 <div className="flex flex-col items-start sm:items-end gap-2">
-                  <Badge variant={getStatusBadgeVariant(order.status)}>
+                  <Badge variant={getStatusBadgeVariant(order.status) as any}>
                     {order.status}
                   </Badge>
                   

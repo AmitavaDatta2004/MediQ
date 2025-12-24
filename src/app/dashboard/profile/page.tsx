@@ -24,19 +24,19 @@ export default function ProfilePage() {
 
   const patientDocRef = useMemoFirebase(() => {
     if (!user) return null;
-    return doc(firestore, 'users', user.uid);
+    return doc(firestore, 'patients', user.uid);
   }, [firestore, user]);
   const { data: patient, isLoading: isPatientLoading } = useDoc<Patient>(patientDocRef);
 
   const allergiesCollectionRef = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(firestore, `users/${user.uid}/allergies`);
+    return collection(firestore, `patients/${user.uid}/allergies`);
   }, [firestore, user]);
   const { data: allergies, isLoading: isAllergiesLoading } = useCollection<Allergy>(allergiesCollectionRef);
 
   const conditionsCollectionRef = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(firestore, `users/${user.uid}/chronic_conditions`);
+    return collection(firestore, `patients/${user.uid}/chronic_conditions`);
   }, [firestore, user]);
   const { data: chronicConditions, isLoading: isConditionsLoading } = useCollection<ChronicCondition>(conditionsCollectionRef);
   
@@ -49,6 +49,7 @@ export default function ProfilePage() {
         lastName: patient.lastName,
         email: patient.email,
         dateOfBirth: patient.dateOfBirth,
+        avatarUrl: patient.avatarUrl,
       });
     }
   }, [patient]);
@@ -83,8 +84,8 @@ export default function ProfilePage() {
           <form className="grid gap-6">
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={patient?.avatarUrl} alt={`${patient?.firstName} ${patient?.lastName}`} data-ai-hint="person portrait"/>
-                <AvatarFallback>{patient?.firstName?.[0]}{patient?.lastName?.[0]}</AvatarFallback>
+                <AvatarImage src={patientData.avatarUrl} alt={`${patientData.firstName} ${patientData.lastName}`} data-ai-hint="person portrait"/>
+                <AvatarFallback>{patientData.firstName?.[0]}{patientData.lastName?.[0]}</AvatarFallback>
               </Avatar>
               <Button>Change Photo</Button>
             </div>

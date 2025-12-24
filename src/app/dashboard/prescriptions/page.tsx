@@ -65,16 +65,16 @@ export default function PrescriptionsPage() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-4">
-                  
-                    <li >
-                      <div className="font-semibold">{prescription.medicineName}</div>
+                  {prescription.medicines?.map((medicine, index) => (
+                    <li key={index}>
+                      <div className="font-semibold">{medicine.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {prescription.dosage} - {prescription.frequency}
+                        {medicine.dosage} - {medicine.frequency}
                       </div>
-                      {prescription.notes && <div className="text-sm text-muted-foreground mt-1">Notes: {prescription.notes}</div>}
                     </li>
-                  
+                  ))}
                 </ul>
+                {prescription.notes && <div className="text-sm text-muted-foreground mt-4">Notes: {prescription.notes}</div>}
               </CardContent>
               <CardFooter className="flex justify-between">
                  <Button variant="ghost"><FileText className="mr-2 h-4 w-4" /> View Details</Button>

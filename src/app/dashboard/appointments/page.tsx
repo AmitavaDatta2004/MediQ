@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Appointment, Doctor } from '@/lib/types';
+import { useMemo } from 'react';
 
 export default function AppointmentsPage() {
   const { user } = useUser();
@@ -35,12 +36,12 @@ export default function AppointmentsPage() {
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(collection(firestore, `users/${user.uid}/appointments`));
+    return query(collection(firestore, `patients/${user.uid}/appointments`));
   }, [firestore, user]);
 
   const { data: appointments, isLoading } = useCollection<Appointment>(appointmentsQuery);
 
-  const doctorIds = useMemoFirebase(() => {
+  const doctorIds = useMemo(() => {
     if (!appointments) return [];
     return [...new Set(appointments.map(a => a.doctorId))];
   }, [appointments]);
@@ -91,7 +92,7 @@ export default function AppointmentsPage() {
                     <div className="flex items-center gap-3">
                       <Avatar className="hidden h-9 w-9 sm:flex">
                         <AvatarImage src={doctor?.avatarUrl} alt="Avatar" data-ai-hint="doctor professional" />
-                        <AvatarFallback>{doctor?.name.substring(0, 2)}</AvatarFallback>
+                        <AvatarFallback>{doctor?.name?.substring(0, 2)}</AvatarFallback>
                       </Avatar>
                       <div className="grid gap-0.5">
                         <span className='font-medium'>{doctor?.name}</span>

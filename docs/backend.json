@@ -1,14 +1,43 @@
 {
   "entities": {
-    "Patient": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Patient",
+    "User": {
+      "title": "User",
+      "description": "Base user record containing authentication information.",
       "type": "object",
-      "description": "Represents a patient in the healthcare system.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Patient entity."
+          "description": "The user's unique ID from Firebase Authentication."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role in the system.",
+          "enum": [
+            "patient",
+            "doctor",
+            "medicine_store"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "role"
+      ]
+    },
+    "Patient": {
+      "title": "Patient",
+      "type": "object",
+      "description": "Represents a patient in the healthcare system, extending the base User.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Patient entity, same as the user UID."
         },
         "firstName": {
           "type": "string",
@@ -21,7 +50,7 @@
         "dateOfBirth": {
           "type": "string",
           "description": "Patient's date of birth.",
-          "format": "date-time"
+          "format": "date"
         },
         "email": {
           "type": "string",
@@ -36,16 +65,21 @@
           "type": "string",
           "description": "Patient's address."
         },
+        "avatarUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for the patient's profile picture."
+        },
         "allergyIds": {
           "type": "array",
-          "description": "References to Allergies. (Relationship: Patient 1:N Allergy)",
+          "description": "List of IDs referencing allergies from the master 'allergies' collection.",
           "items": {
             "type": "string"
           }
         },
         "chronicConditionIds": {
           "type": "array",
-          "description": "References to ChronicConditions. (Relationship: Patient 1:N ChronicCondition)",
+          "description": "List of IDs referencing chronic conditions from the master 'chronicConditions' collection.",
           "items": {
             "type": "string"
           }
@@ -60,14 +94,13 @@
       ]
     },
     "Doctor": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Doctor",
       "type": "object",
       "description": "Represents a doctor in the healthcare system.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Doctor entity."
+          "description": "Unique identifier for the Doctor entity, same as the user UID."
         },
         "firstName": {
           "type": "string",
@@ -76,6 +109,10 @@
         "lastName": {
           "type": "string",
           "description": "Doctor's last name."
+        },
+        "name": {
+          "type": "string",
+          "description": "Doctor's full name, for display purposes."
         },
         "specialty": {
           "type": "string",
@@ -92,26 +129,39 @@
         },
         "location": {
           "type": "string",
-          "description": "Doctor's location (e.g., office address)."
+          "description": "Doctor's office address or city."
+        },
+        "avatarUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for the doctor's profile picture."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Average rating from patient reviews."
+        },
+        "reviews": {
+          "type": "number",
+          "description": "Total number of reviews."
         }
       },
       "required": [
         "id",
         "firstName",
         "lastName",
+        "name",
         "specialty",
         "email"
       ]
     },
     "MedicineStore": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MedicineStore",
       "type": "object",
       "description": "Represents a medicine store (pharmacy).",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the MedicineStore entity."
+          "description": "Unique identifier for the MedicineStore entity, same as the user UID."
         },
         "name": {
           "type": "string",
@@ -140,10 +190,9 @@
       ]
     },
     "MedicalReport": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MedicalReport",
       "type": "object",
-      "description": "Represents a medical report uploaded by a patient.",
+      "description": "Represents a medical report uploaded by a patient, including the AI analysis.",
       "properties": {
         "id": {
           "type": "string",
@@ -151,25 +200,33 @@
         },
         "patientId": {
           "type": "string",
-          "description": "Reference to Patient. (Relationship: Patient 1:N MedicalReport)"
+          "description": "ID of the patient who owns the report."
         },
         "uploadDate": {
           "type": "string",
-          "description": "Date when the report was uploaded.",
-          "format": "date-time"
+          "format": "date-time",
+          "description": "Timestamp when the report was uploaded."
         },
         "reportType": {
           "type": "string",
-          "description": "Type of medical report (e.g., lab report, scan result)."
+          "description": "Type of medical report (e.g., Blood Test, MRI)."
         },
         "fileUrl": {
           "type": "string",
-          "description": "URL of the uploaded medical report file.",
-          "format": "uri"
+          "format": "uri",
+          "description": "URL of the stored medical report file."
         },
-        "aiAnalysis": {
+        "aiSummary": {
           "type": "string",
-          "description": "AI-generated analysis of the report."
+          "description": "AI-generated simplified summary of the report."
+        },
+        "aiPotentialIssues": {
+          "type": "string",
+          "description": "AI-identified potential issues."
+        },
+        "aiNextSteps": {
+          "type": "string",
+          "description": "AI-suggested next steps."
         }
       },
       "required": [
@@ -180,8 +237,70 @@
         "fileUrl"
       ]
     },
+    "ScanImage": {
+      "title": "ScanImage",
+      "type": "object",
+      "description": "Represents a medical scan image (X-ray, CT, MRI) and its analysis.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the scan image."
+        },
+        "patientId": {
+          "type": "string",
+          "description": "ID of the patient who owns the scan."
+        },
+        "uploadDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the scan was uploaded."
+        },
+        "scanType": {
+          "type": "string",
+          "enum": [
+            "X-ray",
+            "CT",
+            "MRI"
+          ]
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the stored scan image."
+        },
+        "aiAnalysis": {
+          "type": "object",
+          "properties": {
+            "anomaliesDetected": {
+              "type": "boolean"
+            },
+            "anomalyReport": {
+              "type": "string"
+            },
+            "heatmapDataUri": {
+              "type": "string"
+            },
+            "urgencyClassification": {
+              "type": "string",
+              "enum": [
+                "Emergency",
+                "Urgent",
+                "Routine",
+                "Normal"
+              ]
+            }
+          }
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "uploadDate",
+        "scanType",
+        "imageUrl"
+      ]
+    },
     "Appointment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Appointment",
       "type": "object",
       "description": "Represents a doctor appointment.",
@@ -192,31 +311,35 @@
         },
         "patientId": {
           "type": "string",
-          "description": "Reference to Patient. (Relationship: Patient 1:N Appointment)"
+          "description": "ID of the patient."
         },
         "doctorId": {
           "type": "string",
-          "description": "Reference to Doctor. (Relationship: Doctor 1:N Appointment)"
+          "description": "ID of the doctor."
         },
         "appointmentDateTime": {
           "type": "string",
           "description": "Date and time of the appointment.",
           "format": "date-time"
         },
+        "reason": {
+          "type": "string",
+          "description": "Reason for the appointment."
+        },
         "notes": {
           "type": "string",
-          "description": "Notes from the doctor regarding the appointment."
+          "description": "Consultation notes from the doctor."
         }
       },
       "required": [
         "id",
         "patientId",
         "doctorId",
-        "appointmentDateTime"
+        "appointmentDateTime",
+        "reason"
       ]
     },
     "Prescription": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Prescription",
       "type": "object",
       "description": "Represents a doctor's prescription for a patient.",
@@ -227,23 +350,39 @@
         },
         "patientId": {
           "type": "string",
-          "description": "Reference to Patient. (Relationship: Patient 1:N Prescription)"
+          "description": "ID of the patient."
         },
         "doctorId": {
           "type": "string",
-          "description": "Reference to Doctor. (Relationship: Doctor 1:N Prescription)"
+          "description": "ID of the prescribing doctor."
         },
-        "medicineName": {
+        "date": {
           "type": "string",
-          "description": "Name of the prescribed medicine."
+          "description": "Date the prescription was issued.",
+          "format": "date-time"
         },
-        "dosage": {
-          "type": "string",
-          "description": "Dosage of the medicine."
-        },
-        "frequency": {
-          "type": "string",
-          "description": "Frequency of taking the medicine (e.g., twice a day)."
+        "medicines": {
+          "type": "array",
+          "description": "List of prescribed medicines.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "dosage": {
+                "type": "string"
+              },
+              "frequency": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "dosage",
+              "frequency"
+            ]
+          }
         },
         "notes": {
           "type": "string",
@@ -254,12 +393,11 @@
         "id",
         "patientId",
         "doctorId",
-        "medicineName",
-        "dosage"
+        "date",
+        "medicines"
       ]
     },
     "Order": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
       "description": "Represents an order for medicines from a medicine store.",
@@ -270,15 +408,15 @@
         },
         "patientId": {
           "type": "string",
-          "description": "Reference to Patient. (Relationship: Patient 1:N Order)"
+          "description": "ID of the patient who placed the order."
         },
         "medicineStoreId": {
           "type": "string",
-          "description": "Reference to MedicineStore. (Relationship: MedicineStore 1:N Order)"
+          "description": "ID of the medicine store fulfilling the order."
         },
         "prescriptionId": {
           "type": "string",
-          "description": "Reference to Prescription. (Relationship: Prescription 1:N Order)"
+          "description": "ID of the corresponding prescription."
         },
         "orderDate": {
           "type": "string",
@@ -287,7 +425,13 @@
         },
         "status": {
           "type": "string",
-          "description": "Status of the order (e.g., pending, processed, delivered)."
+          "description": "Status of the order.",
+          "enum": [
+            "Processing",
+            "Shipped",
+            "Delivered",
+            "Cancelled"
+          ]
         }
       },
       "required": [
@@ -300,7 +444,6 @@
       ]
     },
     "DataConsent": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DataConsent",
       "type": "object",
       "description": "Represents a patient's consent to share data with a doctor.",
@@ -311,11 +454,11 @@
         },
         "patientId": {
           "type": "string",
-          "description": "Reference to Patient. (Relationship: Patient 1:N DataConsent)"
+          "description": "ID of the patient giving consent."
         },
         "doctorId": {
           "type": "string",
-          "description": "Reference to Doctor. (Relationship: Doctor 1:N DataConsent)"
+          "description": "ID of the doctor receiving consent."
         },
         "startDate": {
           "type": "string",
@@ -329,7 +472,7 @@
         },
         "consentGiven": {
           "type": "boolean",
-          "description": "Indicates whether the consent is given or revoked."
+          "description": "True if consent is active, false if revoked."
         }
       },
       "required": [
@@ -342,10 +485,9 @@
       ]
     },
     "Allergy": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Allergy",
       "type": "object",
-      "description": "Represents an allergy that a patient has.",
+      "description": "Represents a master list of possible allergies.",
       "properties": {
         "id": {
           "type": "string",
@@ -353,24 +495,18 @@
         },
         "name": {
           "type": "string",
-          "description": "Name of the allergy."
-        },
-        "reaction": {
-          "type": "string",
-          "description": "Reaction to the allergy."
+          "description": "Name of the allergy (e.g., Peanuts, Penicillin)."
         }
       },
       "required": [
         "id",
-        "name",
-        "reaction"
+        "name"
       ]
     },
     "ChronicCondition": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChronicCondition",
       "type": "object",
-      "description": "Represents a chronic condition that a patient has.",
+      "description": "Represents a master list of possible chronic conditions.",
       "properties": {
         "id": {
           "type": "string",
@@ -378,25 +514,18 @@
         },
         "name": {
           "type": "string",
-          "description": "Name of the chronic condition."
-        },
-        "diagnosisDate": {
-          "type": "string",
-          "description": "Date of diagnosis.",
-          "format": "date-time"
+          "description": "Name of the chronic condition (e.g., Hypertension, Diabetes)."
         }
       },
       "required": [
         "id",
-        "name",
-        "diagnosisDate"
+        "name"
       ]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -404,17 +533,21 @@
       {
         "path": "/users/{userId}",
         "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/entities/User"
+          },
+          "description": "Stores base user account info, including their role."
+        }
+      },
+      {
+        "path": "/patients/{patientId}",
+        "definition": {
           "entityName": "Patient",
           "schema": {
-            "$ref": "#/backend/entities/Patient"
+            "$ref": "#/entities/Patient"
           },
-          "description": "Stores patient profile information.  Owned by the user with ID {userId}.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique ID of the patient."
-            }
-          ]
+          "description": "Stores patient profile information. The document ID must match the user's UID."
         }
       },
       {
@@ -422,71 +555,49 @@
         "definition": {
           "entityName": "Doctor",
           "schema": {
-            "$ref": "#/backend/entities/Doctor"
+            "$ref": "#/entities/Doctor"
           },
-          "description": "Stores doctor profile information. Owned by the doctor with ID {doctorId}.",
-          "params": [
-            {
-              "name": "doctorId",
-              "description": "The unique ID of the doctor."
-            }
-          ]
+          "description": "Stores doctor profile information. The document ID must match the user's UID."
         }
       },
       {
-        "path": "/medicine_stores/{medicineStoreId}",
+        "path": "/medicine_stores/{storeId}",
         "definition": {
           "entityName": "MedicineStore",
           "schema": {
-            "$ref": "#/backend/entities/MedicineStore"
+            "$ref": "#/entities/MedicineStore"
           },
-          "description": "Stores medicine store profile information. Owned by the medicine store with ID {medicineStoreId}.",
-          "params": [
-            {
-              "name": "medicineStoreId",
-              "description": "The unique ID of the medicine store."
-            }
-          ]
+          "description": "Stores medicine store profile information. The document ID must match the user's UID."
         }
       },
       {
-        "path": "/users/{patientId}/medical_reports/{medicalReportId}",
+        "path": "/patients/{patientId}/medical_reports/{reportId}",
         "definition": {
           "entityName": "MedicalReport",
           "schema": {
-            "$ref": "#/backend/entities/MedicalReport"
+            "$ref": "#/entities/MedicalReport"
           },
-          "description": "Stores medical reports uploaded by a patient.  Owned by the patient with ID {patientId}.",
-          "params": [
-            {
-              "name": "patientId",
-              "description": "The unique ID of the patient."
-            },
-            {
-              "name": "medicalReportId",
-              "description": "The unique ID of the medical report."
-            }
-          ]
+          "description": "Stores medical reports and their AI analysis, nested under the patient."
         }
       },
       {
-        "path": "/users/{patientId}/appointments/{appointmentId}",
+        "path": "/patients/{patientId}/scan_images/{scanId}",
+        "definition": {
+          "entityName": "ScanImage",
+          "schema": {
+            "$ref": "#/entities/ScanImage"
+          },
+          "description": "Stores medical scans and their AI analysis, nested under the patient."
+        }
+      },
+      {
+        "path": "/patients/{patientId}/appointments/{appointmentId}",
         "definition": {
           "entityName": "Appointment",
           "schema": {
-            "$ref": "#/backend/entities/Appointment"
+            "$ref": "#/entities/Appointment"
           },
-          "description": "Stores appointment information for a patient.  Owned by the patient with ID {patientId}.",
-          "params": [
-            {
-              "name": "patientId",
-              "description": "The unique ID of the patient."
-            },
-            {
-              "name": "appointmentId",
-              "description": "The unique ID of the appointment."
-            }
-          ]
+          "description": "Stores appointment records for a patient."
         }
       },
       {
@@ -494,162 +605,71 @@
         "definition": {
           "entityName": "Appointment",
           "schema": {
-            "$ref": "#/backend/entities/Appointment"
+            "$ref": "#/entities/Appointment"
           },
-          "description": "Stores appointment information for a doctor. This allows listing appointments by doctor ID. Owned by the doctor with ID {doctorId}.",
-          "params": [
-            {
-              "name": "doctorId",
-              "description": "The unique ID of the doctor."
-            },
-            {
-              "name": "appointmentId",
-              "description": "The unique ID of the appointment."
-            }
-          ]
+          "description": "Denormalized appointment records for easy lookup by doctors."
         }
       },
       {
-        "path": "/users/{patientId}/prescriptions/{prescriptionId}",
+        "path": "/patients/{patientId}/prescriptions/{prescriptionId}",
         "definition": {
           "entityName": "Prescription",
           "schema": {
-            "$ref": "#/backend/entities/Prescription"
+            "$ref": "#/entities/Prescription"
           },
-          "description": "Stores prescriptions for a patient.  Owned by the patient with ID {patientId}.",
-          "params": [
-            {
-              "name": "patientId",
-              "description": "The unique ID of the patient."
-            },
-            {
-              "name": "prescriptionId",
-              "description": "The unique ID of the prescription."
-            }
-          ]
+          "description": "Stores prescriptions for a patient."
         }
       },
       {
-        "path": "/doctors/{doctorId}/prescriptions/{prescriptionId}",
-        "definition": {
-          "entityName": "Prescription",
-          "schema": {
-            "$ref": "#/backend/entities/Prescription"
-          },
-          "description": "Stores prescriptions created by a doctor. This allows listing prescriptions by doctor ID. Owned by the doctor with ID {doctorId}.",
-          "params": [
-            {
-              "name": "doctorId",
-              "description": "The unique ID of the doctor."
-            },
-            {
-              "name": "prescriptionId",
-              "description": "The unique ID of the prescription."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{patientId}/orders/{orderId}",
+        "path": "/patients/{patientId}/orders/{orderId}",
         "definition": {
           "entityName": "Order",
           "schema": {
-            "$ref": "#/backend/entities/Order"
+            "$ref": "#/entities/Order"
           },
-          "description": "Stores orders placed by a patient.  Owned by the patient with ID {patientId}.",
-          "params": [
-            {
-              "name": "patientId",
-              "description": "The unique ID of the patient."
-            },
-            {
-              "name": "orderId",
-              "description": "The unique ID of the order."
-            }
-          ]
+          "description": "Stores medicine orders placed by a patient."
         }
       },
       {
-        "path": "/medicine_stores/{medicineStoreId}/orders/{orderId}",
+        "path": "/medicine_stores/{storeId}/orders/{orderId}",
         "definition": {
           "entityName": "Order",
           "schema": {
-            "$ref": "#/backend/entities/Order"
+            "$ref": "#/entities/Order"
           },
-          "description": "Stores orders associated with a medicine store. This allows listing orders by medicine store ID.  Owned by the medicine store with ID {medicineStoreId}.",
-          "params": [
-            {
-              "name": "medicineStoreId",
-              "description": "The unique ID of the medicine store."
-            },
-            {
-              "name": "orderId",
-              "description": "The unique ID of the order."
-            }
-          ]
+          "description": "Denormalized order records for easy lookup by medicine stores."
         }
       },
       {
-        "path": "/users/{patientId}/data_consents/{dataConsentId}",
+        "path": "/patients/{patientId}/data_consents/{consentId}",
         "definition": {
           "entityName": "DataConsent",
           "schema": {
-            "$ref": "#/backend/entities/DataConsent"
+            "$ref": "#/entities/DataConsent"
           },
-          "description": "Stores data consent information for a patient, specifying which doctors have access to their data.  Owned by the patient with ID {patientId}.",
-          "params": [
-            {
-              "name": "patientId",
-              "description": "The unique ID of the patient."
-            },
-            {
-              "name": "dataConsentId",
-              "description": "The unique ID of the data consent."
-            }
-          ]
+          "description": "Manages patient consent for doctors to access their data."
         }
       },
       {
-        "path": "/users/{patientId}/allergies/{allergyId}",
+        "path": "/allergies/{allergyId}",
         "definition": {
           "entityName": "Allergy",
           "schema": {
-            "$ref": "#/backend/entities/Allergy"
+            "$ref": "#/entities/Allergy"
           },
-          "description": "Stores allergy information for a patient. Owned by the patient with ID {patientId}.",
-          "params": [
-            {
-              "name": "patientId",
-              "description": "The unique ID of the patient."
-            },
-            {
-              "name": "allergyId",
-              "description": "The unique ID of the allergy."
-            }
-          ]
+          "description": "Master list of allergies, publicly readable."
         }
       },
       {
-        "path": "/users/{patientId}/chronic_conditions/{chronicConditionId}",
+        "path": "/chronic_conditions/{conditionId}",
         "definition": {
           "entityName": "ChronicCondition",
           "schema": {
-            "$ref": "#/backend/entities/ChronicCondition"
+            "$ref": "#/entities/ChronicCondition"
           },
-          "description": "Stores chronic condition information for a patient. Owned by the patient with ID {patientId}.",
-          "params": [
-            {
-              "name": "patientId",
-              "description": "The unique ID of the patient."
-            },
-            {
-              "name": "chronicConditionId",
-              "description": "The unique ID of the chronic condition."
-            }
-          ]
+          "description": "Master list of chronic conditions, publicly readable."
         }
       }
-    ],
-    "reasoning": "This Firestore structure is designed to support the MediQuest AI platform, focusing on secure and scalable data management for patients, doctors, and medicine stores. The design emphasizes authorization independence, clarity, and adherence to best practices for Firestore security rules.&#x20;\n\n**Authorization Independence and Data Segregation:**\n\n*   User-owned data (patients, doctors, medicine stores) is segregated under `/users/{userId}`, `/doctors/{doctorId}`, and `/medicine_stores/{medicineStoreId}`, respectively. This adheres to path-based ownership, simplifying security rules and ensuring that data access is directly tied to the user's identity. Each user type (patient, doctor, medicine store) gets its dedicated top-level collection, `/doctors` and `/medicine_stores`. User profiles are stored directly under `/users/{userId}` , `/doctors/{doctorId}`, and `/medicine_stores/{medicineStoreId}`, making them easily accessible and manageable. These root collections contain basic profile information, with each document keyed by the user's unique ID.&#x20;\n*   Medical reports, appointments, prescriptions, orders, and data consents are stored as subcollections under the respective patient documents (`/users/{patientId}/medical_reports`, `/users/{patientId}/appointments`, `/users/{patientId}/prescriptions`, `/users/{patientId}/orders`, `/users/{patientId}/data_consents`). This establishes a clear hierarchy that simplifies data retrieval and access control, making it straightforward to define security rules based on user ownership.\n\n**Membership Map:**\n\n*   Data consents are managed using a dedicated `/users/{patientId}/data_consents/{dataConsentId}` collection. A doctor's access to patient data is governed by the existence and attributes (`startDate`, `endDate`, `consentGiven`) within these consent documents. This design facilitates secure data sharing while ensuring patient control over their information.&#x20;\n*   Appointments, prescriptions, and orders are modeled as subcollections of patients, doctors, and medicine stores, respectively. Each document includes references (IDs) to related entities, creating a clear relationship between patients, doctors, and medicine stores.&#x20;\n\n**QAPs (Rules Are Not Filters):**\n\n*   The data structure supports secure `list` operations by ensuring that collections are homogeneous in terms of security requirements. For example, listing medical reports under `/users/{patientId}/medical_reports` will only return reports owned by that patient, as enforced by the security rules. Similarly, listing appointments under `/doctors/{doctorId}/appointments` will only show appointments associated with that doctor.\n\n**Predictable Schema and Explicit State Modeling:**\n\n*   The schema is predictable with clear naming conventions. Entity names are consistently used throughout the structure (e.g., `patientId`, `doctorId`, `medicineStoreId`).\n\n*   Status fields, where applicable (e.g., `Order.status`), are used to explicitly model the state of entities, making it easier to manage and query data based on specific states."
+    ]
   }
 }

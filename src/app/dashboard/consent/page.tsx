@@ -36,7 +36,7 @@ export default function ConsentPage() {
 
     const consentsQuery = useMemoFirebase(() => {
         if (!user) return null;
-        return query(collection(firestore, `users/${user.uid}/data_consents`));
+        return query(collection(firestore, `patients/${user.uid}/data_consents`));
     }, [firestore, user]);
 
     const { data: consents, isLoading } = useCollection<DataConsent>(consentsQuery);
@@ -108,7 +108,7 @@ export default function ConsentPage() {
                      <div className="flex items-center gap-3">
                       <Avatar className="hidden h-9 w-9 sm:flex">
                         <AvatarImage src={doctor?.avatarUrl} alt="Avatar" data-ai-hint="doctor professional" />
-                        <AvatarFallback>{doctor?.name.substring(0, 2)}</AvatarFallback>
+                        <AvatarFallback>{doctor?.name?.substring(0, 2)}</AvatarFallback>
                       </Avatar>
                       <div className="grid gap-0.5">
                         <span className='font-medium'>{doctor?.name}</span>
