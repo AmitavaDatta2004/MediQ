@@ -1,0 +1,364 @@
+rules_version = '2';
+
+/**
+ * @name AI-Powered Unified Healthcare Intelligence Platform Security Rules
+ * @author Firebase Security Rules Architect
+ *
+ * @description
+ * This ruleset enforces a strict, multi-tenant security model for a healthcare
+ * platform connecting patients, doctors, and medicine stores. The rules are
+ * designed for rapid prototyping, focusing on robust authorization while
+ * maintaining flexibility in data shapes.
+ *
+ * @philosophy
+ * Core Philosophy: The security model is built on a foundation of strict
+ * user ownership and role-based data segregation. Each user type (patient,
+ * doctor, medicine store) has a dedicated top-level collection, and all
+ * sensitive patient data is nested within that patient's private data tree.
+ * Access is denied by default and granted explicitly.
+ *
+ * @structure
+ * Data Structure:
+ * - /users/{userId}: Private patient profiles and nested subcollections
+ *   for all their personal health data (reports, appointments, etc.).
+ * - /doctors/{doctorId}: Publicly readable doctor profiles.
+ * - /medicine_stores/{storeId}: Publicly readable medicine store profiles.
+ *
+ * @decisions
+ * Key Security Decisions:
+ * - Patient Privacy: Listing users from the top-level /users collection is
+ *   strictly forbidden to prevent user enumeration and protect privacy.
+ * - Doctor/Store Discovery: The /doctors and /medicine_stores collections
+ *   are publicly readable to support search and discovery features within the app.
+ *   However, write access is restricted to the document owner.
+ * - Consent-Based Sharing: Complex logic for consent-based data sharing
+ *   (e.g., a doctor viewing a patient's medical reports) is intended to be
+ *   handled by a trusted backend service (like Cloud Functions). These rules
+ *   enforce the most secure default: only the patient can read their own data.
+ *
+ * @denormalization
+ * Denormalization for Authorization: To simplify rules and enhance performance,
+ * data like appointments and prescriptions is denormalized and stored under both
+ * the patient's and the doctor's data trees. This allows for simple, fast,
+ * path-based ownership checks without requiring slow and costly cross-collection
+ * `get()` calls in the rules. For example, an appointment is secured at
+ * `/users/{patientId}/appointments/{appId}` for the patient and at
+ * `/doctors/{doctorId}/appointments/{appId}` for the doctor.
+ *
+ * @segregation
+ * Structural Segregation: User roles are segregated into distinct top-level
+ * collections (/users, /doctors, /medicine_stores). This prevents any potential
+ * for data leakage between different user types and simplifies rule logic, as
+ * the security posture for each collection is distinct and uniform.
+ *
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Is the user authenticated?
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Does the requesting user's UID match the provided owner ID?
+     * This is the fundamental check for ownership-based security.
+     */
+    function isOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId;
+    }
+
+    /**
+     * Does the user own the document, and does the document already exist?
+     * Crucial for safe update and delete operations.
+     */
+    function isExistingOwner(ownerId) {
+      return isOwner(ownerId) && resource != null;
+    }
+
+    // --- Validation Functions for Relational Integrity ---
+
+    /**
+     * On CREATE: Enforces that a new user/doctor/store profile's internal `id`
+     * field matches the document ID in the path and the creator's UID.
+     */
+    function isCreatingOwnProfile(profileId) {
+      return isOwner(profileId) && request.resource.data.id == profileId;
+    }
+
+
+
+    /**
+     * On UPDATE: Enforces that the profile's internal `id` field is immutable,
+     * preventing ownership changes.
+     */
+    function isProfileIdImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * On CREATE: Enforces that a new subcollection document correctly
+     * links back to its parent patient via a `patientId` field.
+     */
+    function linksToPatientOnCreate(patientId) {
+      return request.resource.data.patientId == patientId;
+    }
+
+    /**
+     * On UPDATE: Enforces that the parent patient link (`patientId` field) is immutable.
+     */
+    function isPatientLinkImmutable() {
+      return request.resource.data.patientId == resource.data.patientId;
+    }
+
+    /**
+     * On CREATE: Enforces that a new subcollection document correctly
+     * links back to its parent doctor via a `doctorId` field.
+     */
+    function linksToDoctorOnCreate(doctorId) {
+      return request.resource.data.doctorId == doctorId;
+    }
+
+    /**
+     * On UPDATE: Enforces that the parent doctor link (`doctorId` field) is immutable.
+     */
+    function isDoctorLinkImmutable() {
+      return request.resource.data.doctorId == resource.data.doctorId;
+    }
+    
+    /**
+     * On CREATE: Enforces that a new subcollection document correctly
+     * links back to its parent medicine store via a `medicineStoreId` field.
+     */
+    function linksToStoreOnCreate(storeId) {
+      return request.resource.data.medicineStoreId == storeId;
+    }
+
+    /**
+     * On UPDATE: Enforces that the parent store link (`medicineStoreId` field) is immutable.
+     */
+    function isStoreLinkImmutable() {
+      return request.resource.data.medicineStoreId == resource.data.medicineStoreId;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // User (Patient) Profile Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to patient profiles. Patients can manage their
+     *   own profile, but cannot see or list other patients.
+     * @path /users/{userId}
+     * @allow (auth.uid == 'user_abc') to (create) a document at /users/user_abc
+     * @deny  (auth.uid == 'user_xyz') to (get) the document at /users/user_abc
+     * @principle Restricts access to a user's own data tree, preventing data leakage
+     *   and user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isCreatingOwnProfile(userId);
+      allow update: if isExistingOwner(userId) && isProfileIdImmutable();
+      allow delete: if isExistingOwner(userId);
+
+      // --- Nested Patient Data Subcollections ---
+      
+      /**
+       * @description Secures a patient's medical reports. Only the patient can access them.
+       * @path /users/{patientId}/medical_reports/{reportId}
+       * @allow (auth.uid == 'patient123') to (list) documents at /users/patient123/medical_reports
+       * @deny (auth.uid == 'doctor456') to (get) a document at /users/patient123/medical_reports/{reportId}
+       * @principle Enforces strict data ownership within a user's private data tree.
+       */
+      match /medical_reports/{reportId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && linksToPatientOnCreate(userId);
+        allow update: if isExistingOwner(userId) && isPatientLinkImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+      
+      /**
+       * @description Secures a patient's copy of their appointments.
+       * @path /users/{patientId}/appointments/{appointmentId}
+       * @allow (auth.uid == 'patient123') to (create) a document at /users/patient123/appointments/{appId}
+       * @deny (auth.uid == 'patient456') to (list) documents at /users/patient123/appointments
+       * @principle Enforces strict data ownership for denormalized records.
+       */
+      match /appointments/{appointmentId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && linksToPatientOnCreate(userId);
+        allow update: if isExistingOwner(userId) && isPatientLinkImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+      
+      /**
+       * @description Secures a patient's copy of their prescriptions.
+       * @path /users/{patientId}/prescriptions/{prescriptionId}
+       * @allow (auth.uid == 'patient123') to (get) their prescription.
+       * @deny (auth.uid == 'doctor456') to (get) the patient's prescription.
+       * @principle Enforces strict data ownership for denormalized records.
+       */
+      match /prescriptions/{prescriptionId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && linksToPatientOnCreate(userId);
+        allow update: if isExistingOwner(userId) && isPatientLinkImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+      
+      /**
+       * @description Secures a patient's copy of their medicine orders.
+       * @path /users/{patientId}/orders/{orderId}
+       * @allow (auth.uid == 'patient123') to (list) their own orders.
+       * @deny (auth.uid == 'store789') to (list) the patient's orders.
+       * @principle Enforces strict data ownership for denormalized records.
+       */
+      match /orders/{orderId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && linksToPatientOnCreate(userId);
+        allow update: if isExistingOwner(userId) && isPatientLinkImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+      
+      /**
+       * @description Secures a patient's data consents. Only the patient can manage them.
+       * @path /users/{patientId}/data_consents/{consentId}
+       * @allow (auth.uid == 'patient123') to (create) a new consent.
+       * @deny (auth.uid == 'doctor456') to (update) a consent on behalf of the patient.
+       * @principle Ensures patient has exclusive control over their data sharing preferences.
+       */
+      match /data_consents/{consentId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && linksToPatientOnCreate(userId);
+        allow update: if isExistingOwner(userId) && isPatientLinkImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Secures a patient's allergy information. Only the patient can access it.
+       * @path /users/{patientId}/allergies/{allergyId}
+       * @allow (auth.uid == 'patient123') to (create) a new allergy record.
+       * @deny (auth.uid == 'patient456') to (delete) another patient's allergy record.
+       * @principle Enforces strict data ownership within a user's private data tree.
+       */
+      match /allergies/{allergyId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isExistingOwner(userId);
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Secures a patient's chronic conditions. Only the patient can access them.
+       * @path /users/{patientId}/chronic_conditions/{conditionId}
+       * @allow (auth.uid == 'patient123') to (list) their own chronic conditions.
+       * @deny (auth.uid != 'patient123') to (list) another patient's chronic conditions.
+       * @principle Enforces strict data ownership within a user's private data tree.
+       */
+      match /chronic_conditions/{conditionId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isExistingOwner(userId);
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Doctor Profile Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to doctor profiles. Doctor profiles are public for
+     *   discovery but can only be managed by the doctor themselves.
+     * @path /doctors/{doctorId}
+     * @allow (any user) to (list) all documents at /doctors
+     * @deny (auth.uid == 'user_xyz') to (update) the document at /doctors/doctor_abc
+     * @principle Allows public reads for app features while enforcing document ownership for writes.
+     */
+    match /doctors/{doctorId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isCreatingOwnProfile(doctorId);
+      allow update: if isExistingOwner(doctorId) && isProfileIdImmutable();
+      allow delete: if isExistingOwner(doctorId);
+      
+      /**
+       * @description Secures a doctor's copy of their appointments.
+       * @path /doctors/{doctorId}/appointments/{appointmentId}
+       * @allow (auth.uid == 'doctor456') to (list) documents at /doctors/doctor456/appointments
+       * @deny (auth.uid == 'patient123') to (get) a document at /doctors/doctor456/appointments/{appId}
+       * @principle Enforces strict data ownership for denormalized records.
+       */
+      match /appointments/{appointmentId} {
+        allow get: if isOwner(doctorId);
+        allow list: if isOwner(doctorId);
+        allow create: if isOwner(doctorId) && linksToDoctorOnCreate(doctorId);
+        allow update: if isExistingOwner(doctorId) && isDoctorLinkImmutable();
+        allow delete: if isExistingOwner(doctorId);
+      }
+      
+      /**
+       * @description Secures a doctor's copy of the prescriptions they have created.
+       * @path /doctors/{doctorId}/prescriptions/{prescriptionId}
+       * @allow (auth.uid == 'doctor456') to (create) a prescription under their own ID.
+       * @deny (auth.uid == 'doctor789') to (update) a prescription belonging to doctor456.
+       * @principle Enforces strict data ownership for denormalized records.
+       */
+      match /prescriptions/{prescriptionId} {
+        allow get: if isOwner(doctorId);
+        allow list: if isOwner(doctorId);
+        allow create: if isOwner(doctorId) && linksToDoctorOnCreate(doctorId);
+        allow update: if isExistingOwner(doctorId) && isDoctorLinkImmutable();
+        allow delete: if isExistingOwner(doctorId);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Medicine Store Profile Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to medicine store profiles. They are public for
+     *   discovery but can only be managed by the store's authenticated account.
+     * @path /medicine_stores/{storeId}
+     * @allow (any user) to (get) the document at /medicine_stores/store_abc
+     * @deny (auth.uid == 'user_xyz') to (delete) the document at /medicine_stores/store_abc
+     * @principle Allows public reads for app features while enforcing document ownership for writes.
+     */
+    match /medicine_stores/{storeId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isCreatingOwnProfile(storeId);
+      allow update: if isExistingOwner(storeId) && isProfileIdImmutable();
+      allow delete: if isExistingOwner(storeId);
+      
+      /**
+       * @description Secures a medicine store's copy of its orders.
+       * @path /medicine_stores/{storeId}/orders/{orderId}
+       * @allow (auth.uid == 'store789') to (list) documents at /medicine_stores/store789/orders
+       * @deny (auth.uid == 'patient123') to (get) a document at /medicine_stores/store789/orders/{orderId}
+       * @principle Enforces strict data ownership for denormalized records.
+       */
+      match /orders/{orderId} {
+        allow get: if isOwner(storeId);
+        allow list: if isOwner(storeId);
+        allow create: if isOwner(storeId) && linksToStoreOnCreate(storeId);
+        allow update: if isExistingOwner(storeId) && isStoreLinkImmutable();
+        allow delete: if isExistingOwner(storeId);
+      }
+    }
+  }
+}
