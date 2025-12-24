@@ -9,13 +9,13 @@ import {
   User,
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { getSdks } from '.';
+import { getSdks, initializeFirebase } from '.';
 import { setDocumentNonBlocking } from './non-blocking-updates';
 
 type Role = 'patient' | 'doctor' | 'medicine_store';
 
 async function handleGoogleSignUp(user: User, role: Role) {
-    const { firestore } = getSdks(user.providerData[0].providerId as any); // A bit of a hack to get the app
+    const { firestore } = initializeFirebase();
     
     // Check if user profile already exists
     const userDocRef = doc(firestore, `${role}s`, user.uid);
@@ -66,7 +66,7 @@ async function handleGoogleSignUp(user: User, role: Role) {
             phone: '555-1234'
         };
         const storeDocRef = doc(firestore, 'medicine_stores', user.uid);
-        await setDocumentNonBlocking(storeDocRef, profileData, { merge: true });
+        await setDocumentNonBlocking(storeDocRef, storeData, { merge: true });
     }
 
     // Create base user role document
