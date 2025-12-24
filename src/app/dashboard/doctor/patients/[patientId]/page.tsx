@@ -18,12 +18,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { useParams } from 'next/navigation';
 
-export default function PatientRecordPage({ params }: { params: { patientId: string } }) {
+export default function PatientRecordPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
-    const { patientId } = params;
+    const params = useParams();
+    const patientId = params.patientId as string;
 
     const [isPrescribing, setIsPrescribing] = useState(false);
     const [medicines, setMedicines] = useState([{ name: '', dosage: '', frequency: '' }]);
