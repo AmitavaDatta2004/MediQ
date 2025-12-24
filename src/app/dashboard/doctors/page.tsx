@@ -11,11 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useCollection, useFirestore, useMemoFirebase, useUser, addDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { Doctor } from '@/lib/types';
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,7 +52,7 @@ export default function DoctorsPage() {
     const appointmentId = uuidv4();
 
     // Create appointment in patient's subcollection
-    const patientAppointmentRef = collection(firestore, `patients/${user.uid}/appointments`);
+    const patientAppointmentRef = doc(firestore, `patients/${user.uid}/appointments`, appointmentId);
     const appointmentData = {
         id: appointmentId,
         patientId: user.uid,
@@ -60,12 +60,13 @@ export default function DoctorsPage() {
         appointmentDateTime,
         reason: appointmentReason,
         notes: '',
+        status: 'Upcoming' as const,
     };
-    await addDocumentNonBlocking(patientAppointmentRef, appointmentData);
+    await setDocumentNonBlocking(patientAppointmentRef, appointmentData, { merge: false });
 
     // Denormalize appointment in doctor's subcollection
-    const doctorAppointmentRef = collection(firestore, `doctors/${selectedDoctor.id}/appointments`);
-    await addDocumentNonBlocking(doctorAppointmentRef, appointmentData);
+    const doctorAppointmentRef = doc(firestore, `doctors/${selectedDoctor.id}/appointments`, appointmentId);
+    await setDocumentNonBlocking(doctorAppointmentRef, appointmentData, { merge: false });
 
     toast({
         title: "Appointment Booked!",
@@ -139,7 +140,10 @@ export default function DoctorsPage() {
                     <Textarea id="reason" placeholder="e.g., Annual check-up, follow-up..." value={appointmentReason} onChange={(e) => setAppointmentReason(e.target.value)} />
                 </div>
             </div>
-            <Button onClick={handleBookAppointment}>Confirm Booking</Button>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsBooking(false)}>Cancel</Button>
+                <Button onClick={handleBookAppointment}>Confirm Booking</Button>
+            </DialogFooter>
         </DialogContent>
     </Dialog>
     </>

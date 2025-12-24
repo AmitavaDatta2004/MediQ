@@ -1,5 +1,4 @@
 'use client';
-import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,13 +9,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Table,
   TableBody,
   TableCell,
@@ -26,35 +18,36 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
-import type { Appointment, Doctor } from '@/lib/types';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { Appointment, Patient } from '@/lib/types';
 import { useMemo } from 'react';
+import Link from 'next/link';
 
-export default function AppointmentsPage() {
+export default function DoctorAppointmentsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(collection(firestore, `patients/${user.uid}/appointments`));
+    return query(collection(firestore, `doctors/${user.uid}/appointments`), orderBy('appointmentDateTime', 'desc'));
   }, [firestore, user]);
 
   const { data: appointments, isLoading } = useCollection<Appointment>(appointmentsQuery);
 
-  const doctorIds = useMemo(() => {
+  const patientIds = useMemo(() => {
     if (!appointments) return [];
-    return [...new Set(appointments.map(a => a.doctorId))];
+    return [...new Set(appointments.map(a => a.patientId))];
   }, [appointments]);
 
-  const { data: doctors } = useCollection<Doctor>(
+  const { data: patients } = useCollection<Patient>(
     useMemoFirebase(() => {
-      if (!firestore || doctorIds.length === 0) return null;
-      return query(collection(firestore, 'doctors'), where('id', 'in', doctorIds));
-    }, [firestore, doctorIds])
+      if (!firestore || patientIds.length === 0) return null;
+      return query(collection(firestore, 'patients'), where('id', 'in', patientIds));
+    }, [firestore, patientIds])
   );
 
-  const getDoctor = (doctorId: string) => {
-    return doctors?.find(d => d.id === doctorId);
+  const getPatient = (patientId: string) => {
+    return patients?.find(p => p.id === patientId);
   }
 
   const getStatusVariant = (status: Appointment['status']) => {
@@ -77,16 +70,16 @@ export default function AppointmentsPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Appointment History</CardTitle>
+        <CardTitle>My Appointments</CardTitle>
         <CardDescription>
-          A log of your past and upcoming medical appointments.
+          A log of your past and upcoming consultations.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Doctor</TableHead>
+              <TableHead>Patient</TableHead>
               <TableHead>Reason</TableHead>
               <TableHead className="hidden md:table-cell">Date</TableHead>
               <TableHead className="hidden md:table-cell">Time</TableHead>
@@ -98,20 +91,21 @@ export default function AppointmentsPage() {
           </TableHeader>
           <TableBody>
             {appointments && appointments.map((appointment) => {
-              const doctor = getDoctor(appointment.doctorId);
+              const patient = getPatient(appointment.patientId);
               return (
                 <TableRow key={appointment.id}>
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="hidden h-9 w-9 sm:flex">
-                        <AvatarImage src={doctor?.avatarUrl} alt="Avatar" data-ai-hint="doctor professional" />
-                        <AvatarFallback>{doctor?.name?.substring(0, 2)}</AvatarFallback>
-                      </Avatar>
-                      <div className="grid gap-0.5">
-                        <span className='font-medium'>{doctor?.name}</span>
-                        <span className='text-muted-foreground text-sm hidden md:inline'>{doctor?.specialty}</span>
+                    <Link href={`/dashboard/doctor/patients/${patient?.id}`}>
+                      <div className="flex items-center gap-3 hover:underline">
+                        <Avatar className="hidden h-9 w-9 sm:flex">
+                          <AvatarImage src={patient?.avatarUrl} alt="Avatar" data-ai-hint="person portrait" />
+                          <AvatarFallback>{patient?.firstName?.[0]}{patient?.lastName?.[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="grid gap-0.5">
+                          <span className='font-medium'>{patient?.firstName} {patient?.lastName}</span>
+                        </div>
                       </div>
-                    </div>
+                    </Link>
                   </TableCell>
                   <TableCell>{appointment.reason}</TableCell>
                   <TableCell className="hidden md:table-cell">{new Date(appointment.appointmentDateTime).toLocaleDateString()}</TableCell>
@@ -122,20 +116,7 @@ export default function AppointmentsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        {appointment.status === 'Upcoming' && <DropdownMenuItem>Reschedule</DropdownMenuItem>}
-                        {appointment.status === 'Upcoming' && <DropdownMenuItem className="text-destructive">Cancel</DropdownMenuItem>}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button variant="outline" size="sm">View Details</Button>
                   </TableCell>
                 </TableRow>
               );

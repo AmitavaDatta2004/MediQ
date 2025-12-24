@@ -1,4 +1,13 @@
 
+
+export type UserRole = 'patient' | 'doctor' | 'medicine_store';
+
+export type User = {
+    id: string;
+    email: string;
+    role: UserRole;
+};
+
 export type Patient = {
   id: string;
   firstName: string;
@@ -27,6 +36,7 @@ export type Appointment = {
   appointmentDateTime: string;
   notes?: string;
   reason?: string;
+  status: 'Upcoming' | 'Completed' | 'Cancelled';
 };
 
 export type Prescription = {

@@ -13,6 +13,9 @@ import {
   User,
   ShieldCheck,
   FolderKanban,
+  Users,
+  Store,
+  Notebook
 } from 'lucide-react';
 
 import {
@@ -25,8 +28,9 @@ import {
 } from '@/components/ui/sidebar';
 import { Icons } from '@/components/icons';
 import { Separator } from './ui/separator';
+import type { UserRole } from '@/lib/types';
 
-const navItems = [
+const patientNavItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/records', icon: FolderKanban, label: 'My Records'},
   { href: '/dashboard/report-analysis', icon: FileScan, label: 'Report Analysis' },
@@ -37,20 +41,55 @@ const navItems = [
   { href: '/dashboard/orders', icon: Truck, label: 'Medicine Orders' },
 ];
 
-const bottomNavItems = [
+const patientBottomNavItems = [
     { href: '/dashboard/profile', icon: User, label: 'Profile' },
     { href: '/dashboard/consent', icon: ShieldCheck, label: 'Data Consent' },
+];
+
+const doctorNavItems = [
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/dashboard/doctor/appointments', icon: Calendar, label: 'Appointments' },
+    { href: '/dashboard/doctor/patients', icon: Users, label: 'My Patients' },
+];
+
+const doctorBottomNavItems = [
+    { href: '/dashboard/profile', icon: User, label: 'Profile' },
 ]
 
-export function DashboardNav() {
+const storeNavItems = [
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/dashboard/store/orders', icon: Notebook, label: 'Incoming Orders' },
+    { href: '/dashboard/store/inventory', icon: Store, label: 'Inventory' },
+]
+
+const storeBottomNavItems = [
+    { href: '/dashboard/profile', icon: User, label: 'Profile' },
+]
+
+export function DashboardNav({ userRole }: { userRole?: UserRole }) {
   const pathname = usePathname();
+
+  let navItems = patientNavItems;
+  let bottomNavItems = patientBottomNavItems;
+  let title = "MediQuest AI";
+
+  if (userRole === 'doctor') {
+    navItems = doctorNavItems;
+    bottomNavItems = doctorBottomNavItems;
+    title = "Doctor Portal";
+  } else if (userRole === 'medicine_store') {
+    navItems = storeNavItems;
+    bottom/NavItems = storeBottomNavItems;
+    title = "Pharmacy Portal";
+  }
+
 
   return (
     <>
       <SidebarHeader>
         <div className="flex items-center gap-2 p-2">
           <Icons.logo className="w-8 h-8 text-primary" />
-          <span className="text-lg font-semibold font-headline">MediQuest AI</span>
+          <span className="text-lg font-semibold font-headline">{title}</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="p-2">
