@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
-import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useAuth, useFirestore, setDocumentNonBlocking, initiateGoogleSignIn } from '@/firebase';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
+import { Separator } from '@/components/ui/separator';
 
 export default function DoctorSignupPage() {
     const auth = useAuth();
@@ -41,18 +42,30 @@ export default function DoctorSignupPage() {
                 name: `Dr. ${firstName} ${lastName}`,
                 specialty,
                 email: user.email,
+                avatarUrl: user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`,
                 location: 'Online',
                 rating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10, // Mock rating between 3.5 and 5
                 reviews: Math.floor(Math.random() * 200) + 50, // Mock reviews between 50 and 250
             };
             
             const doctorDocRef = doc(firestore, 'doctors', user.uid);
-            setDocumentNonBlocking(doctorDocRef, doctorData, { merge: true });
+            await setDocumentNonBlocking(doctorDocRef, doctorData, { merge: true });
 
              // Create base user role document
             const userDocRef = doc(firestore, 'users', user.uid);
-            setDocumentNonBlocking(userDocRef, { id: user.uid, email: user.email, role: 'doctor' }, { merge: true });
+            await setDocumentNonBlocking(userDocRef, { id: user.uid, email: user.email, role: 'doctor' }, { merge: true });
 
+            router.push('/dashboard');
+        } catch (error: any) {
+            setError(error.message);
+        }
+    }
+
+    const handleGoogleSignUp = async () => {
+        try {
+            await initiateGoogleSignIn(auth, 'doctor');
+            // This will trigger onAuthStateChanged, and the logic inside will handle profile creation if it's a new user.
+            // For simplicity, we can assume the user is new and redirect, or check if profile exists.
             router.push('/dashboard');
         } catch (error: any) {
             setError(error.message);
@@ -72,10 +85,17 @@ export default function DoctorSignupPage() {
           <Card>
             <CardHeader>
                 <CardTitle className="text-2xl">Sign Up</CardTitle>
-                <CardDescription>All fields are required.</CardDescription>
+                <CardDescription>Use your email or Google to create an account.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid gap-4">
+                    <Button variant="outline" className="w-full" onClick={handleGoogleSignUp}>
+                        Sign up with Google
+                    </Button>
+                    <div className="relative my-2">
+                        <Separator />
+                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">OR CONTINUE WITH EMAIL</span>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                             <Label htmlFor="firstName">First Name</Label>

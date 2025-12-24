@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
-import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useAuth, useFirestore, setDocumentNonBlocking, initiateGoogleSignIn } from '@/firebase';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
+import { Separator } from '@/components/ui/separator';
 
 export default function StoreSignupPage() {
     const auth = useAuth();
@@ -42,12 +43,21 @@ export default function StoreSignupPage() {
             };
             
             const storeDocRef = doc(firestore, 'medicine_stores', user.uid);
-            setDocumentNonBlocking(storeDocRef, storeData, { merge: true });
+            await setDocumentNonBlocking(storeDocRef, storeData, { merge: true });
 
             // Create base user role document
             const userDocRef = doc(firestore, 'users', user.uid);
-            setDocumentNonBlocking(userDocRef, { id: user.uid, email: user.email, role: 'medicine_store' }, { merge: true });
+            await setDocumentNonBlocking(userDocRef, { id: user.uid, email: user.email, role: 'medicine_store' }, { merge: true });
 
+            router.push('/dashboard');
+        } catch (error: any) {
+            setError(error.message);
+        }
+    }
+
+     const handleGoogleSignUp = async () => {
+        try {
+            await initiateGoogleSignIn(auth, 'medicine_store');
             router.push('/dashboard');
         } catch (error: any) {
             setError(error.message);
@@ -71,6 +81,13 @@ export default function StoreSignupPage() {
             </CardHeader>
             <CardContent>
                 <div className="grid gap-4">
+                     <Button variant="outline" className="w-full" onClick={handleGoogleSignUp}>
+                        Sign up with Google
+                    </Button>
+                    <div className="relative my-2">
+                        <Separator />
+                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">OR CONTINUE WITH EMAIL</span>
+                    </div>
                     <div className="grid gap-2">
                         <Label htmlFor="storeName">Store Name</Label>
                         <Input id="storeName" placeholder="City Pharmacy" required value={storeName} onChange={(e) => setStoreName(e.target.value)} />

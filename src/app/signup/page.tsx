@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
-import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useAuth, useFirestore, setDocumentNonBlocking, initiateGoogleSignIn } from '@/firebase';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
+import { Separator } from '@/components/ui/separator';
 
 export default function SignupPage() {
     const auth = useAuth();
@@ -38,15 +39,26 @@ export default function SignupPage() {
                 firstName,
                 lastName,
                 email: user.email,
+                avatarUrl: user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`,
                 dateOfBirth: '', // Add a field for this in the form if needed
             };
             const patientDocRef = doc(firestore, 'patients', user.uid);
-            setDocumentNonBlocking(patientDocRef, patientData, { merge: true });
+            await setDocumentNonBlocking(patientDocRef, patientData, { merge: true });
 
             // Create base user role document
             const userDocRef = doc(firestore, 'users', user.uid);
-            setDocumentNonBlocking(userDocRef, { id: user.uid, email: user.email, role: 'patient' }, { merge: true });
+            await setDocumentNonBlocking(userDocRef, { id: user.uid, email: user.email, role: 'patient' }, { merge: true });
 
+            router.push('/dashboard');
+        } catch (error: any) {
+            setError(error.message);
+        }
+    }
+    
+    const handleGoogleSignUp = async () => {
+        try {
+            await initiateGoogleSignIn(auth, 'patient');
+            // This will trigger onAuthStateChanged, and the logic inside will handle profile creation if it's a new user.
             router.push('/dashboard');
         } catch (error: any) {
             setError(error.message);
@@ -66,10 +78,17 @@ export default function SignupPage() {
           <Card>
             <CardHeader>
                 <CardTitle className="text-2xl">Sign Up</CardTitle>
-                <CardDescription>All fields are required.</CardDescription>
+                <CardDescription>Use your email or Google to create an account.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid gap-4">
+                     <Button variant="outline" className="w-full" onClick={handleGoogleSignUp}>
+                        Sign up with Google
+                    </Button>
+                     <div className="relative my-2">
+                        <Separator />
+                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">OR CONTINUE WITH EMAIL</span>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                             <Label htmlFor="firstName">First Name</Label>

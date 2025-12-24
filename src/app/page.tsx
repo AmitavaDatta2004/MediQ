@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
-import { useAuth, initiateEmailSignIn } from '@/firebase';
+import { useAuth, initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Separator } from '@/components/ui/separator';
 
 export default function LoginPage() {
     const auth = useAuth();
@@ -19,6 +20,12 @@ export default function LoginPage() {
         if (!email || !password) return;
         initiateEmailSignIn(auth, email, password);
         router.push('/dashboard');
+    }
+
+    const handleGoogleSignIn = () => {
+        initiateGoogleSignIn(auth, 'patient').then(() => {
+            router.push('/dashboard');
+        });
     }
 
   return (
@@ -34,7 +41,7 @@ export default function LoginPage() {
           <Card>
             <CardHeader>
                 <CardTitle className="text-2xl">Login</CardTitle>
-                <CardDescription>Use our demo account to proceed.</CardDescription>
+                <CardDescription>Use our demo account, your email, or Google.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid gap-4">
@@ -62,7 +69,14 @@ export default function LoginPage() {
                     <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                     </div>
                     <Button type="submit" className="w-full" onClick={handleLogin}>
-                        Login
+                        Login with Email
+                    </Button>
+                     <div className="relative my-2">
+                        <Separator />
+                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">OR</span>
+                    </div>
+                     <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                        Sign in with Google
                     </Button>
                      <div className="text-center text-sm">
                         Are you a medical professional? Login as a{' '}

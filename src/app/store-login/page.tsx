@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
-import { useAuth, initiateEmailSignIn } from '@/firebase';
+import { useAuth, initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Separator } from '@/components/ui/separator';
 
 export default function StoreLoginPage() {
     const auth = useAuth();
@@ -19,6 +20,12 @@ export default function StoreLoginPage() {
         if (!email || !password) return;
         initiateEmailSignIn(auth, email, password);
         router.push('/dashboard');
+    }
+
+    const handleGoogleSignIn = () => {
+        initiateGoogleSignIn(auth, 'medicine_store').then(() => {
+            router.push('/dashboard');
+        });
     }
 
   return (
@@ -34,7 +41,7 @@ export default function StoreLoginPage() {
           <Card>
             <CardHeader>
                 <CardTitle className="text-2xl">Login</CardTitle>
-                <CardDescription>Use your store's registered credentials.</CardDescription>
+                <CardDescription>Use your store's registered credentials or Google.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid gap-4">
@@ -64,6 +71,13 @@ export default function StoreLoginPage() {
                     <Button type="submit" className="w-full" onClick={handleLogin}>
                         Login
                     </Button>
+                     <div className="relative my-2">
+                        <Separator />
+                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">OR</span>
+                    </div>
+                    <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                        Sign in with Google
+                    </Button>
                     <div className="text-center text-sm">
                         Not a store owner? Login as a{' '}
                         <Link href="/" className="underline">
@@ -85,7 +99,7 @@ export default function StoreLoginPage() {
         </div>
       </div>
       <div className="hidden bg-muted lg:flex items-center justify-center flex-col text-center p-8">
-        <Icons.logo className="h-24 w-24 text-primary mb-4" />
+        <Iconslogo className="h-24 w-24 text-primary mb-4" />
         <h2 className="text-4xl font-bold font-headline">MediQuest AI</h2>
         <p className="text-lg text-muted-foreground mt-2 max-w-md">Streamlining prescription fulfillment and inventory management.</p>
       </div>
