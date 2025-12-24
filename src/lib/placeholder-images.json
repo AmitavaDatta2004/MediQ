@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "user-avatar-1",
+      "description": "Avatar for user Alex Doe",
+      "imageUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjY1MDkwNzR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "doctor-avatar-1",
+      "description": "Avatar for Dr. Evelyn Reed",
+      "imageUrl": "https://images.unsplash.com/photo-1758691461935-202e2ef6b69f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxkb2N0b3IlMjBwcm9mZXNzaW9uYWx8ZW58MHx8fHwxNzY2NTg2NzEyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doctor professional"
+    },
+    {
+      "id": "doctor-avatar-2",
+      "description": "Avatar for Dr. Marcus Chen",
+      "imageUrl": "https://images.unsplash.com/photo-1758691461990-03b49d969495?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxkb2N0b3IlMjBwcm9mZXNzaW9uYWx8ZW58MHx8fHwxNzY2NTg2NzEyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doctor professional"
+    },
+    {
+      "id": "doctor-avatar-3",
+      "description": "Avatar for Dr. Sarah Jenkins",
+      "imageUrl": "https://images.unsplash.com/photo-1758691461935-202e2ef6b69f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxkb2N0b3IlMjBwcm9mZXNzaW9uYWx8ZW58MHx8fHwxNzY2NTg2NzEyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doctor professional"
+    },
+    {
+      "id": "doctor-avatar-4",
+      "description": "Avatar for Dr. Omar Hassan",
+      "imageUrl": "https://images.unsplash.com/photo-1758691462123-8a17ae95d203?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxkb2N0b3IlMjBwcm9mZXNzaW9uYWx8ZW58MHx8fHwxNzY2NTg2NzEyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doctor professional"
+    },
+    {
+      "id": "scan-placeholder",
+      "description": "Placeholder for a medical scan",
+      "imageUrl": "https://images.unsplash.com/photo-1612836696857-bf3d0eab59a9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx4LXJheSUyMG1lZGljYWx8ZW58MHx8fHwxNzY2NjAyMTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "x-ray medical"
+    },
+    {
+      "id": "report-placeholder",
+      "description": "Placeholder for a medical report document",
+      "imageUrl": "https://images.unsplash.com/photo-1715522594847-67c90b5b8667?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxkb2N1bWVudCUyMHBhcGVyfGVufDB8fHx8MTc2NjU2NzQ3OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "document paper"
+    }
+  ]
 }
