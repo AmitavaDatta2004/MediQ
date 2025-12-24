@@ -9,11 +9,11 @@ import { useAuth, initiateEmailSignIn } from '@/firebase';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function LoginPage() {
+export default function DoctorLoginPage() {
     const auth = useAuth();
     const router = useRouter();
-    const [email, setEmail] = useState('patient@mediquest.ai');
-    const [password, setPassword] = useState('password123');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
 
     const handleLogin = () => {
         initiateEmailSignIn(auth, email, password);
@@ -25,15 +25,15 @@ export default function LoginPage() {
       <div className="flex items-center justify-center py-12 px-4">
         <div className="mx-auto grid w-full max-w-md gap-6">
           <div className="grid gap-2 text-center">
-            <h1 className="text-3xl font-bold font-headline">Patient Login</h1>
+            <h1 className="text-3xl font-bold font-headline">Doctor Login</h1>
             <p className="text-balance text-muted-foreground">
-              Enter your email below to login to your account
+              Enter your credentials to access the doctor portal.
             </p>
           </div>
           <Card>
             <CardHeader>
                 <CardTitle className="text-2xl">Login</CardTitle>
-                <CardDescription>Use our demo account to proceed.</CardDescription>
+                <CardDescription>Use your registered email and password.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid gap-4">
@@ -42,7 +42,7 @@ export default function LoginPage() {
                     <Input
                         id="email"
                         type="email"
-                        placeholder="m@example.com"
+                        placeholder="doctor@mediquest.ai"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -63,10 +63,10 @@ export default function LoginPage() {
                     <Button type="submit" className="w-full" onClick={handleLogin}>
                         Login
                     </Button>
-                     <div className="text-center text-sm">
-                        Are you a medical professional? Login as a{' '}
-                        <Link href="/doctor-login" className="underline">
-                        Doctor
+                    <div className="text-center text-sm">
+                        Not a doctor? Login as a{' '}
+                        <Link href="/" className="underline">
+                        Patient
                         </Link> or a {' '}
                         <Link href="/store-login" className="underline">
                         Medicine Store
@@ -75,18 +75,12 @@ export default function LoginPage() {
                 </div>
             </CardContent>
           </Card>
-          <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="#" className="underline">
-              Sign up
-            </Link>
-          </div>
         </div>
       </div>
       <div className="hidden bg-muted lg:flex items-center justify-center flex-col text-center p-8">
         <Icons.logo className="h-24 w-24 text-primary mb-4" />
         <h2 className="text-4xl font-bold font-headline">MediQuest AI</h2>
-        <p className="text-lg text-muted-foreground mt-2 max-w-md">Your Personal Health Intelligence Partner. Advanced analysis for reports and scans, at your fingertips.</p>
+        <p className="text-lg text-muted-foreground mt-2 max-w-md">Empowering medical professionals with AI-driven insights.</p>
       </div>
     </div>
   );
