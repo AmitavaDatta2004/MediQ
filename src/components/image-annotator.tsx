@@ -1,7 +1,8 @@
+
 'use client';
 import React, { useState } from 'react';
 import type { MedicalFinding } from '@/lib/types';
-import { Info, ScanLine, Flame, Layers, MousePointer2, CheckCircle } from 'lucide-react';
+import { Info, ScanLine, Flame, Layers, MousePointer2 } from 'lucide-react';
 
 interface ImageAnnotatorProps {
   imageUrl: string;
