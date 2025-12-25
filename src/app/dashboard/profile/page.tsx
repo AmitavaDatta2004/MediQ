@@ -6,6 +6,12 @@ import type { Patient, MedicineStore, User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import PatientProfileForm from '@/components/forms/patient-profile-form';
 import MedicineStoreProfileForm from '@/components/forms/medicine-store-profile-form';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from '@/components/ui/card';
 
 
 export default function ProfilePage() {
