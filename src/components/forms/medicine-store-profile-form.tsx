@@ -242,3 +242,5 @@ export default function MedicineStoreProfileForm({ store }: { store: MedicineSto
     </div>
   );
 }
+
+    
