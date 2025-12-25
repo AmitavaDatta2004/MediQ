@@ -19,9 +19,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { useCollection, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
+import { collection, doc, query, where, orderBy } from 'firebase/firestore';
 import type { Order, Patient } from '@/lib/types';
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +37,7 @@ export default function StoreOrdersPage() {
 
     const ordersQuery = useMemoFirebase(() => {
         if (!user) return null;
-        return query(collection(firestore, `medicine_stores/${user.uid}/orders`));
+        return query(collection(firestore, `medicine_stores/${user.uid}/orders`), orderBy('orderDate', 'desc'));
     }, [firestore, user]);
 
     const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
@@ -87,7 +88,7 @@ export default function StoreOrdersPage() {
         <Card>
             <CardHeader>
                 <CardTitle>Incoming Medicine Orders</CardTitle>
-                <CardDescription>Manage and fulfill prescriptions.</CardDescription>
+                <CardDescription>Manage and fulfill prescriptions from all patients.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -118,9 +119,11 @@ export default function StoreOrdersPage() {
                                            </DropdownMenuTrigger>
                                            <DropdownMenuContent>
                                                 <DropdownMenuItem>View Prescription</DropdownMenuItem>
+                                                <DropdownMenuSeparator />
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'Processing')}>Mark as Processing</DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'Shipped')}>Mark as Shipped</DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'Delivered')}>Mark as Delivered</DropdownMenuItem>
+                                                <DropdownMenuSeparator />
                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleUpdateStatus(order, 'Cancelled')}>Cancel Order</DropdownMenuItem>
                                            </DropdownMenuContent>
                                        </DropdownMenu>

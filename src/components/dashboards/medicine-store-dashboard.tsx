@@ -21,12 +21,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCollection, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
-import type { Order, Patient, Prescription } from '@/lib/types';
+import { collection, doc, query, where, orderBy, limit } from 'firebase/firestore';
+import type { Order, Patient } from '@/lib/types';
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '../ui/button';
-import { MoreHorizontal, Truck } from 'lucide-react';
+import { MoreHorizontal, Truck, CheckCircle, Package, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function MedicineStoreDashboard() {
@@ -36,43 +36,34 @@ export default function MedicineStoreDashboard() {
 
     const ordersQuery = useMemoFirebase(() => {
         if (!user) return null;
-        return query(collection(firestore, `medicine_stores/${user.uid}/orders`));
+        return query(collection(firestore, `medicine_stores/${user.uid}/orders`), orderBy('orderDate', 'desc'));
+    }, [firestore, user]);
+    
+    const recentOrdersQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, `medicine_stores/${user.uid}/orders`), orderBy('orderDate', 'desc'), limit(5));
     }, [firestore, user]);
 
     const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
+    const { data: recentOrders } = useCollection<Order>(recentOrdersQuery);
     
     const patientIds = useMemo(() => {
-        if (!orders) return [];
-        return [...new Set(orders.map(o => o.patientId))];
-    }, [orders]);
-    
-    const prescriptionIds = useMemo(() => {
-        if (!orders) return [];
-        return [...new Set(orders.map(o => o.prescriptionId))];
-    }, [orders]);
+        if (!recentOrders) return [];
+        return [...new Set(recentOrders.map(o => o.patientId))];
+    }, [recentOrders]);
 
     const patientsQuery = useMemoFirebase(() => {
         if (!firestore || patientIds.length === 0) return null;
         return query(collection(firestore, 'patients'), where('id', 'in', patientIds));
     }, [firestore, patientIds]);
     const { data: patients } = useCollection<Patient>(patientsQuery);
-
-    const prescriptionsQuery = useMemoFirebase(() => {
-        if (!firestore || patientIds.length === 0 || prescriptionIds.length === 0) return null;
-        // This is a simplification. In a real app, you might need to query each patient's subcollection.
-        // For this demo, we assume we can query a root `prescriptions` collection or handle it differently.
-        // Let's assume prescriptions are nested under patients. This will require multiple queries.
-        // A better structure might be a root prescriptions collection with patientId.
-        // For now, this will not work as intended without complex querying. Let's show all orders and fetch patient details.
-        // The prescription details can be fetched on demand.
-        return null;
-    }, [firestore, patientIds, prescriptionIds]);
     
     const getPatient = (patientId: string) => patients?.find(p => p.id === patientId);
 
     const handleUpdateStatus = (order: Order, status: Order['status']) => {
+        if(!user) return;
         const patientOrderRef = doc(firestore, `patients/${order.patientId}/orders`, order.id);
-        const storeOrderRef = doc(firestore, `medicine_stores/${order.medicineStoreId}/orders`, order.id);
+        const storeOrderRef = doc(firestore, `medicine_stores/${user.uid}/orders`, order.id);
         
         updateDocumentNonBlocking(patientOrderRef, { status });
         updateDocumentNonBlocking(storeOrderRef, { status });
@@ -92,13 +83,59 @@ export default function MedicineStoreDashboard() {
             default: return 'default';
         }
     }
+    
+    const processingOrders = useMemo(() => orders?.filter(o => o.status === 'Processing').length || 0, [orders]);
+    const shippedOrders = useMemo(() => orders?.filter(o => o.status === 'Shipped').length || 0, [orders]);
+    const deliveredOrders = useMemo(() => orders?.filter(o => o.status === 'Delivered').length || 0, [orders]);
 
   return (
     <div className="flex flex-col gap-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">New Orders</CardTitle>
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{processingOrders}</div>
+                    <p className="text-xs text-muted-foreground">awaiting processing</p>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">In Transit</CardTitle>
+                    <Truck className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{shippedOrders}</div>
+                    <p className="text-xs text-muted-foreground">orders currently shipped</p>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Completed Orders</CardTitle>
+                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{deliveredOrders}</div>
+                    <p className="text-xs text-muted-foreground">in the last 30 days</p>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Low Stock Alerts</CardTitle>
+                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">0</div>
+                    <p className="text-xs text-muted-foreground">items need restocking</p>
+                </CardContent>
+            </Card>
+        </div>
         <Card>
             <CardHeader>
-                <CardTitle>Incoming Medicine Orders</CardTitle>
-                <CardDescription>Manage and fulfill prescriptions.</CardDescription>
+                <CardTitle>Recent Orders</CardTitle>
+                <CardDescription>Your 5 most recent incoming orders.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -112,7 +149,7 @@ export default function MedicineStoreDashboard() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                       {orders?.map(order => {
+                       {recentOrders?.map(order => {
                            const patient = getPatient(order.patientId);
                            return (
                                <TableRow key={order.id}>
@@ -141,7 +178,7 @@ export default function MedicineStoreDashboard() {
                        })}
                     </TableBody>
                 </Table>
-                 {(!orders || orders.length === 0) && <p className="text-center text-muted-foreground py-8">No orders found.</p>}
+                 {(!recentOrders || recentOrders.length === 0) && <p className="text-center text-muted-foreground py-8">No recent orders found.</p>}
             </CardContent>
         </Card>
     </div>
