@@ -8,7 +8,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { ImageAnalysisInputSchema, ImageAnalysisOutputSchema, TextAnalysisInputSchema, TextAnalysisOutputSchema, type ImageAnalysisInput, type ImageAnalysisOutput, type TextAnalysisInput, type TextAnalysisOutput } from '../schemas';
+import { ImageAnalysisInputSchema, ImageAnalysisOutputSchema, TextAnalysisInputSchema, TextAnalysisOutputSchema, type ImageAnalysisInput, type ImageAnalysisOutput, type TextAnalysisInput, type TextAnalysisOutput } from '@/ai/schemas';
 
 export async function analyzeScanForAnomalies(
   input: TextAnalysisInput
@@ -62,13 +62,13 @@ const imageAnalysisPrompt = ai.definePrompt({
 
 **Instructions:**
 1.  **Review Analysis:** Read the provided analysis to understand where the anomalies are located.
-2.  **Mark Image:** Create a new image data URI (\`analyzedImageUrl\`). Draw clear boxes, circles, or outlines on this new image to highlight the specific areas mentioned in the analysis.
+2.  **Mark Image:** Create a new image data URI ('analyzedImageUrl'). Draw clear boxes, circles, or outlines on this new image to highlight the specific areas mentioned in the analysis.
 3.  **Maintain Integrity:** The output image must be the same size as the input image. If no anomalies were mentioned in the analysis, you should return the original image as a data URI.
 
 **Analysis Details:**
-\`\`\`json
+'''json
 {{{json analysis}}}
-\`\`\`
+'''
 
 **Original Scan Image:**
 {{media url=scanDataUri}}

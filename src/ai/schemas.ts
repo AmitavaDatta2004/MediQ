@@ -19,33 +19,7 @@ export const GenerateMedicineDetailsOutputSchema = z.object({
 });
 export type GenerateMedicineDetailsOutput = z.infer<typeof GenerateMedicineDetailsOutputSchema>;
 
-const AnalyzeScanForAnomaliesInputSchema = z.object({
-  scanDataUri: z
-    .string()
-    .describe(
-      "A medical image (X-ray, CT, MRI) as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-  scanType: z.enum(['X-ray', 'CT', 'MRI']).describe('The type of medical scan.'),
-  patientDetails: z
-    .string()
-    .optional()
-    .describe('Optional details about the patient, such as age and medical history.'),
-});
-export type AnalyzeScanForAnomaliesInput = z.infer<typeof AnalyzeScanForAnomaliesInputSchema>;
-
-const AnalyzeScanForAnomaliesOutputSchema = z.object({
-    summary: z.string().describe("A comprehensive summary of the scan, explaining what the image shows in simple terms. If it's impossible to make a diagnosis from a single image, state that clearly."),
-    criticalFindings: z.string().optional().describe("Any findings that require immediate medical attention. If none, this can be omitted."),
-    keyFindings: z.string().optional().describe("Important, non-critical observations, measurements, or identified structures."),
-    healthIssues: z.string().optional().describe("Identified health concerns or conditions suggested by the scan."),
-    recommendedSpecialists: z.string().optional().describe("Types of medical professionals to consult based on the findings (e.g., Neurologist, Cardiologist)."),
-    recommendedMedications: z.string().optional().describe("AI-suggested medications or treatments based on the findings. This is not medical advice."),
-    analyzedImageUrl: z.string().describe("A data URI of the analyzed image. This image should have any detected anomalies clearly marked with squares or outlines. It should be the same size as the input image."),
-    urgencyClassification: z.enum(['Emergency', 'Urgent', 'Routine', 'Normal']).describe('The urgency classification of the scan based on the anomalies detected.'),
-});
-export type AnalyzeScanForAnomaliesOutput = z.infer<typeof AnalyzeScanForAnomaliesOutputSchema>;
-
-const TextAnalysisInputSchema = z.object({
+export const TextAnalysisInputSchema = z.object({
   scanDataUri: z
     .string()
     .describe(
@@ -59,25 +33,25 @@ const TextAnalysisInputSchema = z.object({
 });
 export type TextAnalysisInput = z.infer<typeof TextAnalysisInputSchema>;
 
-const TextAnalysisOutputSchema = z.object({
+export const TextAnalysisOutputSchema = z.object({
     summary: z.string().describe("A comprehensive summary of the scan, explaining what the image shows in simple terms. If it's impossible to make a diagnosis from a single image, state that clearly."),
     criticalFindings: z.string().optional().describe("Any findings that require immediate medical attention. If none, this can be omitted."),
     keyFindings: z.string().optional().describe("Important, non-critical observations, measurements, or identified structures."),
     healthIssues: z.string().optional().describe("Identified health concerns or conditions suggested by the scan."),
-    recommendedSpecialists: z-string().optional().describe("Types of medical professionals to consult based on the findings (e.g., Neurologist, Cardiologist)."),
+    recommendedSpecialists: z.string().optional().describe("Types of medical professionals to consult based on the findings (e.g., Neurologist, Cardiologist)."),
     recommendedMedications: z.string().optional().describe("AI-suggested medications or treatments based on the findings. This is not medical advice."),
     urgencyClassification: z.enum(['Emergency', 'Urgent', 'Routine', 'Normal']).describe('The urgency classification of the scan based on the anomalies detected.'),
 });
 export type TextAnalysisOutput = z.infer<typeof TextAnalysisOutputSchema>;
 
 
-const ImageAnalysisInputSchema = z.object({
+export const ImageAnalysisInputSchema = z.object({
   scanDataUri: z.string().describe("The original medical scan as a data URI."),
   analysis: TextAnalysisOutputSchema.describe("The text-based analysis of the scan, which will be used to guide the image marking process."),
 });
 export type ImageAnalysisInput = z.infer<typeof ImageAnalysisInputSchema>;
 
-const ImageAnalysisOutputSchema = z.object({
+export const ImageAnalysisOutputSchema = z.object({
   analyzedImageUrl: z.string().describe("A data URI of the analyzed image. This image should have any detected anomalies clearly marked with squares or outlines, based on the provided analysis. It should be the same size as the input image."),
 });
 export type ImageAnalysisOutput = z.infer<typeof ImageAnalysisOutputSchema>;
