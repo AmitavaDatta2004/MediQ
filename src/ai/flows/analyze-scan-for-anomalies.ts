@@ -67,7 +67,7 @@ Output should be formatted as a JSON object that conforms to AnalyzeScanForAnoma
 
 If no anomalies are detected, set anomaliesDetected to false, provide a report stating "No anomalies detected", and set urgencyClassification to "Normal".
 
-If anomalies are detected, then heatmapDataUri should also be returned, providing a URL to a heatmap visualization highlighting these anomalies.
+If anomalies are detected, then heatmapDataUri should also be returned, providing a data URI for a heatmap visualization highlighting these anomalies.
 `,
 });
 
