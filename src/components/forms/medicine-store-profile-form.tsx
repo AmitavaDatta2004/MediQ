@@ -151,7 +151,7 @@ export default function MedicineStoreProfileForm({ store }: { store: MedicineSto
                  <div className="grid gap-2 mt-4">
                     <Label>Map Location</Label>
                     <div className="relative">
-                        <Input disabled value="123 Main St, Anytown, USA" />
+                        <Input disabled value={storeData.address || ''} />
                         <Button variant="ghost" size="icon" className="absolute right-1 top-1 h-8 w-8">
                             <MapPin className="h-4 w-4"/>
                         </Button>
@@ -242,4 +242,3 @@ export default function MedicineStoreProfileForm({ store }: { store: MedicineSto
     </div>
   );
 }
-
