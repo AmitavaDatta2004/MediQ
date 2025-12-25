@@ -1,4 +1,5 @@
 
+
 export type UserRole = 'patient' | 'doctor' | 'medicine_store';
 
 export type User = {
@@ -14,6 +15,9 @@ export type Patient = {
   email: string;
   avatarUrl?: string;
   dateOfBirth: string;
+  height?: number;
+  weight?: number;
+  bloodGroup?: string;
 };
 
 export type Doctor = {
@@ -72,13 +76,11 @@ export type DataConsent = {
 export type Allergy = {
     id: string;
     name: string;
-    reaction: string;
 };
 
 export type ChronicCondition = {
     id: string;
     name: string;
-    diagnosisDate: string;
 };
 
 export type MedicineStore = {

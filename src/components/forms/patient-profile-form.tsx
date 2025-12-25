@@ -12,29 +12,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { useDoc, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
-import type { Patient, Allergy, ChronicCondition } from '@/lib/types';
-import { useCollection } from '@/firebase';
+import { setDocumentNonBlocking, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { Patient } from '@/lib/types';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function PatientProfileForm({ patient }: { patient: Patient }) {
-  const { user } = useUser();
   const firestore = useFirestore();
-
-  const allergiesCollectionRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return collection(firestore, `patients/${user.uid}/allergies`);
-  }, [firestore, user]);
-  const { data: allergies, isLoading: isAllergiesLoading } = useCollection<Allergy>(allergiesCollectionRef);
-
-  const conditionsCollectionRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return collection(firestore, `patients/${user.uid}/chronic_conditions`);
-  }, [firestore, user]);
-  const { data: chronicConditions, isLoading: isConditionsLoading } = useCollection<ChronicCondition>(conditionsCollectionRef);
-  
   const [patientData, setPatientData] = useState<Partial<Patient>>({});
 
   useEffect(() => {
@@ -43,7 +28,6 @@ export default function PatientProfileForm({ patient }: { patient: Patient }) {
         firstName: patient.firstName,
         lastName: patient.lastName,
         email: patient.email,
-        dateOfBirth: patient.dateOfBirth,
         avatarUrl: patient.avatarUrl,
       });
     }
@@ -67,7 +51,7 @@ export default function PatientProfileForm({ patient }: { patient: Patient }) {
         <CardHeader>
           <CardTitle>My Profile</CardTitle>
           <CardDescription>
-            Manage your personal and health information.
+            Manage your personal and account information. For health records, please visit the <Link href="/dashboard/inventory" className="text-primary underline">Health Inventory</Link>.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -92,24 +76,6 @@ export default function PatientProfileForm({ patient }: { patient: Patient }) {
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" type="email" value={patientData.email || ''} onChange={handleInputChange} />
                 </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                    <Input id="dateOfBirth" type="date" value={patientData.dateOfBirth ? new Date(patientData.dateOfBirth).toISOString().split('T')[0] : ''} onChange={handleInputChange} />
-                </div>
-            </div>
-            <div className="grid gap-2">
-              <Label>Allergies</Label>
-              <div className="flex flex-wrap gap-2">
-                {allergies?.map(allergy => <Badge variant="secondary" key={allergy.id}>{allergy.name}</Badge>)}
-              </div>
-              <Input placeholder="Add new allergy..." />
-            </div>
-             <div className="grid gap-2">
-              <Label>Chronic Conditions</Label>
-              <div className="flex flex-wrap gap-2">
-                {chronicConditions?.map(condition => <Badge variant="secondary" key={condition.id}>{condition.name}</Badge>)}
-              </div>
-              <Input placeholder="Add new condition..." />
             </div>
           </form>
         </CardContent>
