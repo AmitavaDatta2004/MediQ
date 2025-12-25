@@ -75,12 +75,11 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
 
       {/* 
         Image Container Strategy:
-        We need the overlays (absolute) to position themselves relative to the *exact* dimensions of the visible image.
-        If we just use `w-full h-auto` on the img, it might stretch.
-        Strategy: 
-        1. Outer Flex Container: Centers the content.
-        2. Relative Wrapper: `inline-block`. Shrinks to fit the image dimensions exactly.
-        3. Image: `block`. Max constraints applied here.
+        The key to correct positioning is having a wrapper that shrinks to the exact dimensions of the contained image.
+        1. Outer Flex Container: `flex justify-center items-center` to center the block.
+        2. Relative Wrapper: `relative inline-block` is crucial. It makes the div shrink-to-fit the image child.
+        3. Image: The `img` tag with `object-contain` will scale down while preserving aspect ratio.
+        4. Overlays: Absolutely positioned overlays will now be relative to the `inline-block` wrapper, which has the same dimensions as the visual image, ensuring perfect alignment.
       */}
       <div className="w-full bg-black/40 rounded-xl border border-gray-800 p-4 flex justify-center items-center min-h-[400px]">
         
@@ -171,7 +170,7 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
                       </div>
                       <div className="flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-wider font-medium">
                         <span>Confidence</span>
-                        <span className="text-primary/70">{finding.confidence}</span>
+                        <span className="text-primary">{finding.confidence}</span>
                       </div>
                       {/* Triangle Pointer */}
                       <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-gray-900/95"></div>
