@@ -1,7 +1,7 @@
 'use server';
 
 import { summarizeMedicalReport, type SummarizeMedicalReportInput } from '@/ai/flows/summarize-medical-report';
-import { analyzeScanForAnomaliesAction, generateAnalyzedImageAction, type TextAnalysisInput, type ImageAnalysisInput } from '@/ai/flows/analyze-scan-for-anomalies';
+import { analyzeScanForAnomaliesAction as analyzeScanForAnomaliesFlow, generateAnalyzedImageAction as generateAnalyzedImageFlow, type TextAnalysisInput, type ImageAnalysisInput } from '@/ai/flows/analyze-scan-for-anomalies';
 import { generateMedicineDetails } from '@/ai/flows/generate-medicine-details';
 import type { GenerateMedicineDetailsInput } from '@/ai/schemas';
 import { readPrescriptionAndCheckInventory, type ReadPrescriptionInput } from '@/ai/flows/read-prescription-and-check-inventory';
@@ -13,11 +13,11 @@ export async function summarizeMedicalReportAction(input: SummarizeMedicalReport
 
 export async function analyzeScanForAnomaliesAction(input: TextAnalysisInput) {
     // In a real app, you'd add user authentication/authorization checks here.
-    return await analyzeScanForAnomaliesAction(input);
+    return await analyzeScanForAnomaliesFlow(input);
 }
 
 export async function generateAnalyzedImageAction(input: ImageAnalysisInput) {
-    return await generateAnalyzedImageAction(input);
+    return await generateAnalyzedImageFlow(input);
 }
 
 export async function generateMedicineDetailsAction(input: GenerateMedicineDetailsInput) {
