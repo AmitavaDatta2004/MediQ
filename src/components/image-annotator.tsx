@@ -30,8 +30,6 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
         const {
           naturalWidth,
           naturalHeight,
-          width: renderedWidth,
-          height: renderedHeight,
         } = imageRef.current;
         const containerWidth = containerRef.current.offsetWidth;
         const containerHeight = containerRef.current.offsetHeight;
@@ -39,21 +37,19 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
         const imageAspectRatio = naturalWidth / naturalHeight;
         const containerAspectRatio = containerWidth / containerHeight;
         
-        let finalWidth = renderedWidth;
-        let finalHeight = renderedHeight;
+        let finalWidth, finalHeight, left, top;
         
         if (imageAspectRatio > containerAspectRatio) {
-            // Image is wider than container, so it's constrained by width
             finalWidth = containerWidth;
             finalHeight = finalWidth / imageAspectRatio;
+            left = 0;
+            top = (containerHeight - finalHeight) / 2;
         } else {
-            // Image is taller than or equal to container, so it's constrained by height
             finalHeight = containerHeight;
             finalWidth = finalHeight * imageAspectRatio;
+            top = 0;
+            left = (containerWidth - finalWidth) / 2;
         }
-
-        const left = (containerWidth - finalWidth) / 2;
-        const top = (containerHeight - finalHeight) / 2;
         
         setImageInfo({
           width: finalWidth,
@@ -64,8 +60,8 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
       }
     };
     
-    if (imageRef.current) {
-        const img = imageRef.current;
+    const img = imageRef.current;
+    if (img) {
         if (img.complete) {
             calculateImagePosition();
         } else {
