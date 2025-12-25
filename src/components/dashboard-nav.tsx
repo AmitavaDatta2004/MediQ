@@ -60,7 +60,7 @@ const doctorBottomNavItems = [
 const storeNavItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/dashboard/store/orders', icon: Notebook, label: 'Incoming Orders' },
-    { href: '/dashboard/store/inventory', icon: Store, label: 'Inventory' },
+    { href: '/dashboard/store/inventory', icon: Store, label: 'Manage Store' },
 ]
 
 const storeBottomNavItems = [
