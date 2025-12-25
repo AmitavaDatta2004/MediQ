@@ -52,36 +52,39 @@ export default function ScanAnalysisPage() {
       setFiles(prev => [newFile, ...prev]);
 
       try {
-        setProcessingStatus('Denoising & Cropping...');
-        const processedResult = await processMedicalImageAction({ scanDataUri: base64DataUrl, scanType: 'X-ray' });
-        const processedImageUrl = processedResult.analyzedImageUrl;
+        setProcessingStatus('Uploading to secure storage...');
+        const storage = getStorage();
         
-        setFiles(prev => prev.map(f => f.id === fileId ? { ...f, processedUrl: processedImageUrl } : f));
+        // Use a more specific path for uploads that will be processed.
+        const uploadRef = ref(storage, `patients/${user.uid}/uploads/${newFile.scanId}_${file.name}`);
+        const uploadSnapshot = await uploadString(uploadRef, base64DataUrl, 'data_url');
+        const originalImageUrl = await getDownloadURL(uploadSnapshot.ref);
+
+        setProcessingStatus('Denoising & Cropping...');
+        const processedResult = await processMedicalImageAction({ imageUrl: originalImageUrl });
+        const processedDataUrl = processedResult.analyzedImageUrl;
+        
+        setFiles(prev => prev.map(f => f.id === fileId ? { ...f, processedUrl: processedDataUrl } : f));
 
         setProcessingStatus('Analyzing Scan...');
-         // IMPORTANT FIX: The second model expects raw base64, not a data URI.
-        const base64Data = processedImageUrl.split(',')[1];
-        const textResult = await analyzeMedicalDocumentAction({ scanDataUri: base64Data, scanType: 'X-ray' });
+        const textResult = await analyzeMedicalDocumentAction({ imageUrl: originalImageUrl, scanType: 'X-ray' });
         
         setFiles(prev => prev.map(f => f.id === fileId ? { ...f, analysisResult: textResult } : f));
 
-        const storage = getStorage();
-        const originalImageRef = ref(storage, `patients/${user.uid}/scan_images/${newFile.scanId}_original`);
-        const originalImageSnapshot = await uploadString(originalImageRef, base64DataUrl, 'data_url');
-        const originalImageUrl = await getDownloadURL(originalImageSnapshot.ref);
-
+        // Upload the AI-processed image to storage as well
         const analyzedImageRef = ref(storage, `patients/${user.uid}/scan_images/${newFile.scanId}_analyzed`);
-        const analyzedImageSnapshot = await uploadString(analyzedImageRef, processedImageUrl, 'data_url');
+        const analyzedImageSnapshot = await uploadString(analyzedImageRef, processedDataUrl, 'data_url');
         const finalAnalyzedImageUrl = await getDownloadURL(analyzedImageSnapshot.ref);
 
+        // Save the final record to Firestore
         const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
         const finalScanData: ScanImage = {
               id: newFile.scanId,
               patientId: user.uid,
               uploadDate: new Date().toISOString(),
               scanType: 'X-ray', // Or detect from UI
-              imageUrl: originalImageUrl,
-              analyzedImageUrl: finalAnalyzedImageUrl,
+              imageUrl: originalImageUrl, // URL to the original uploaded image
+              analyzedImageUrl: finalAnalyzedImageUrl, // URL to the AI-enhanced image
               aiAnalysis: textResult
         };
         await addDoc(scanCollectionRef, finalScanData);

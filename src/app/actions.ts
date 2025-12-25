@@ -1,9 +1,9 @@
 'use server';
 
 import { summarizeMedicalReport, type SummarizeMedicalReportInput } from '@/ai/flows/summarize-medical-report';
-import { analyzeMedicalDocumentAction as analyzeMedicalDocumentFlow, processMedicalImageAction as processMedicalImageFlow, type TextAnalysisInput } from '@/ai/flows/analyze-scan-for-anomalies';
+import { analyzeMedicalDocumentAction as analyzeMedicalDocumentFlow, processMedicalImageAction as processMedicalImageFlow, type TextAnalysisInput, type ImageAnalysisInput } from '@/ai/flows/analyze-scan-for-anomalies';
 import { generateMedicineDetails } from '@/ai/flows/generate-medicine-details';
-import type { GenerateMedicineDetailsInput, ImageAnalysisOutput, TextAnalysisOutput } from '@/ai/schemas';
+import type { GenerateMedicineDetailsInput } from '@/ai/schemas';
 import { readPrescriptionAndCheckInventory, type ReadPrescriptionInput } from '@/ai/flows/read-prescription-and-check-inventory';
 
 export async function summarizeMedicalReportAction(input: SummarizeMedicalReportInput) {
@@ -11,12 +11,12 @@ export async function summarizeMedicalReportAction(input: SummarizeMedicalReport
     return await summarizeMedicalReport(input);
 }
 
-export async function analyzeMedicalDocumentAction(input: TextAnalysisInput): Promise<TextAnalysisOutput> {
+export async function analyzeMedicalDocumentAction(input: TextAnalysisInput) {
     // In a real app, you'd add user authentication/authorization checks here.
     return await analyzeMedicalDocumentFlow(input);
 }
 
-export async function processMedicalImageAction(input: TextAnalysisInput): Promise<ImageAnalysisOutput> {
+export async function processMedicalImageAction(input: ImageAnalysisInput) {
     return await processMedicalImageFlow(input);
 }
 

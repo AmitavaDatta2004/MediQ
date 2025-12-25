@@ -34,10 +34,10 @@ const FindingSchema = z.object({
 });
 
 export const TextAnalysisInputSchema = z.object({
-  scanDataUri: z
+  imageUrl: z
     .string()
     .describe(
-      "A medical image (X-ray, CT, MRI) as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A public URL to a medical image (X-ray, CT, MRI)."
     ),
   scanType: z.enum(['X-ray', 'CT', 'MRI']).describe('The type of medical scan.'),
   patientDetails: z
@@ -61,8 +61,7 @@ export const TextAnalysisOutputSchema = z.object({
 export type TextAnalysisOutput = z.infer<typeof TextAnalysisOutputSchema>;
 
 export const ImageAnalysisInputSchema = z.object({
-  scanDataUri: z.string().describe("The original medical scan as a data URI."),
-  analysis: TextAnalysisOutputSchema.describe("The text-based analysis of the scan, which will be used to guide the image marking process."),
+  imageUrl: z.string().describe("The public URL to the original medical scan."),
 });
 export type ImageAnalysisInput = z.infer<typeof ImageAnalysisInputSchema>;
 

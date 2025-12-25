@@ -23,12 +23,12 @@ import {
  * Flow to enhance a medical image: denoise, improve contrast, and crop.
  */
 export async function processMedicalImageAction(
-  input: TextAnalysisInput
+  input: ImageAnalysisInput
 ): Promise<ImageAnalysisOutput> {
   const {media} = await ai.generate({
     model: 'googleai/gemini-2.5-flash-image-preview',
     prompt: [
-      {media: {url: input.scanDataUri}},
+      {media: {url: input.imageUrl}},
       {text: `Enhance this medical scan: remove noise/grain, improve contrast, and crop exactly to the main anatomical region of interest (e.g., the lung, bone, or organ). Maintain medical accuracy. Do not add non-existent features.`},
     ],
     config: {
@@ -57,7 +57,7 @@ const textAnalysisPrompt = ai.definePrompt({
 5.  **Disclaimer**: Add a standard medical disclaimer: "This is an AI-generated analysis and is not a substitute for professional medical advice. Consult a licensed radiologist for an accurate diagnosis."
 
 **Patient Context:** {{{patientDetails}}}
-**Scan Image:** {{media url=scanDataUri}}
+**Scan Image:** {{media url=imageUrl}}
 
 Your response MUST be a JSON object conforming to the 'TextAnalysisOutputSchema'.`,
 });
