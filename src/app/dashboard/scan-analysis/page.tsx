@@ -18,7 +18,7 @@ import { analyzeScanForAnomaliesAction } from '@/app/actions';
 import type { AnalyzeScanForAnomaliesOutput } from '@/ai/flows/analyze-scan-for-anomalies';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
