@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { useParams } from 'next/navigation';
+import { addDoc } from 'firebase/firestore';
 
 export default function PatientRecordPage() {
     const { user } = useUser();
@@ -86,7 +87,7 @@ export default function PatientRecordPage() {
         };
 
         const prescriptionRef = doc(firestore, `patients/${patientId}/prescriptions`, prescriptionId);
-        await addDocumentNonBlocking(collection(firestore, `patients/${patientId}/prescriptions`), prescriptionData);
+        await addDoc(collection(firestore, `patients/${patientId}/prescriptions`), prescriptionData);
 
         toast({
             title: 'Prescription Created',
@@ -185,7 +186,7 @@ export default function PatientRecordPage() {
                                     <Card key={scan.id}>
                                         <CardHeader>
                                             <div className="relative aspect-video w-full rounded-md overflow-hidden">
-                                                <Image src={scan.imageUrl} alt={`Scan from ${new Date(scan.uploadDate).toLocaleDateString()}`} fill objectFit='cover' data-ai-hint="medical scan" />
+                                                <Image src={scan.imageUrl} alt={`Scan from ${new Date(scan.uploadDate).toLocaleDateString()}`} fill className='object-cover' data-ai-hint="medical scan" />
                                             </div>
                                         </CardHeader>
                                         <CardContent>
@@ -195,7 +196,7 @@ export default function PatientRecordPage() {
                                                 <span className="text-sm font-medium">Urgency:</span>
                                                 <Badge variant={scan.aiAnalysis.urgencyClassification === 'Emergency' || scan.aiAnalysis.urgencyClassification === 'Urgent' ? 'destructive' : 'secondary'}>{scan.aiAnalysis.urgencyClassification}</Badge>
                                             </div>
-                                             <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{scan.aiAnalysis.anomalyReport}</p>
+                                             <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{scan.aiAnalysis.summary}</p>
                                         </CardContent>
                                     </Card>
                                 ))}

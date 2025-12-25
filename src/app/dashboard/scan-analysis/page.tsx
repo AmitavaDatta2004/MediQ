@@ -120,25 +120,25 @@ export default function ScanAnalysisPage() {
       }
 
       // 3. Save analysis to Firestore
-      const scanId = uuidv4();
-      const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
-      await addDoc(scanCollectionRef, {
-          id: scanId,
-          patientId: user.uid,
-          uploadDate: new Date().toISOString(),
-          scanType,
-          imageUrl: originalImageUrl,
-          analyzedImageUrl: analyzedImageUrl,
-          aiAnalysis: {
-            summary: result.summary,
-            criticalFindings: result.criticalFindings || null,
-            keyFindings: result.keyFindings || null,
-            healthIssues: result.healthIssues || null,
-            recommendedSpecialists: result.recommendedSpecialists || null,
-            recommendedMedications: result.recommendedMedications || null,
-            urgencyClassification: result.urgencyClassification
-          }
-      });
+        const scanId = uuidv4();
+        const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
+        await addDoc(scanCollectionRef, {
+            id: scanId,
+            patientId: user.uid,
+            uploadDate: new Date().toISOString(),
+            scanType,
+            imageUrl: originalImageUrl, // The original, un-analyzed image
+            analyzedImageUrl: analyzedImageUrl, // The image with AI markings
+            aiAnalysis: {
+                summary: result.summary,
+                criticalFindings: result.criticalFindings || null,
+                keyFindings: result.keyFindings || null,
+                healthIssues: result.healthIssues || null,
+                recommendedSpecialists: result.recommendedSpecialists || null,
+                recommendedMedications: result.recommendedMedications || null,
+                urgencyClassification: result.urgencyClassification,
+            }
+        });
       
       toast({
         title: "Analysis Complete & Saved",
@@ -184,7 +184,7 @@ export default function ScanAnalysisPage() {
             <CardContent className="space-y-4">
                <div className="relative aspect-video w-full flex items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg text-center overflow-hidden bg-muted/20">
                 {previewUrl ? (
-                  <Image src={previewUrl} alt="Scan preview" fill objectFit="contain" />
+                  <Image src={previewUrl} alt="Scan preview" fill className="object-contain" />
                 ) : (
                   <div className='p-8'>
                       <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto" data-ai-hint="medical scan"/>

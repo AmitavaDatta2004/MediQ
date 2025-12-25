@@ -46,28 +46,20 @@ const prompt = ai.definePrompt({
   name: 'analyzeScanForAnomaliesPrompt',
   input: {schema: AnalyzeScanForAnomaliesInputSchema},
   output: {schema: AnalyzeScanForAnomaliesOutputSchema},
-  prompt: `You are a world-class AI radiologist. Your task is to analyze a medical scan image and provide a detailed, structured report in a format a patient can understand, while also being useful for a medical professional.
+  prompt: `You are an expert AI radiologist. Analyze the provided medical scan ({{{scanType}}}) and return a detailed JSON report.
 
-You will receive a medical image ({{{scanType}}}) and optional patient details.
+**Instructions:**
+1.  **Summarize:** Briefly explain what the scan shows in simple terms.
+2.  **Findings:** Identify critical and key findings. If there are none, omit those fields.
+3.  **Recommendations:** Suggest potential health issues, specialists, and medications based on the scan.
+4.  **Mark Image:** Create a new image data URI (\`analyzedImageUrl\`). Draw boxes or outlines on this image to mark any anomalies found. If no anomalies, return the original image as a data URI.
+5.  **Classify:** Determine the urgency level.
 
-**Analysis Steps:**
-1.  **Summarize the Image:** Provide a clear, simple summary of what the scan shows. Explain the type of scan (MRI, CT, etc.) and what part of the body is being viewed. IMPORTANT: State clearly that a single image is not sufficient for a complete diagnosis.
-2.  **Identify Findings:** Carefully examine the image for any abnormalities, points of interest, or significant markers.
-3.  **Structure the Output:** Populate the JSON output with your findings.
-    *   \`summary\`: Your detailed overview.
-    *   \`criticalFindings\`: Note anything that looks like an emergency.
-    *   \`keyFindings\`: Note any other important observations.
-    *   \`healthIssues\`: List potential conditions suggested by the findings.
-    *   \`recommendedSpecialists\`: Suggest the type of doctor to see.
-    *   \`recommendedMedications\`: Suggest potential medications (with a disclaimer).
-    *   \`urgencyClassification\`: Classify the scan's urgency.
-4.  **Mark the Image:** Create and return a new image as a data URI in the 'analyzedImageUrl' field. This image MUST be the same dimensions as the input. On this image, draw clear boxes or outlines around any areas you refer to in your findings. If there are no specific findings to mark, return the original image.
-
-**Patient Details:** {{{patientDetails}}}
+**Patient Context:** {{{patientDetails}}}
 
 **Scan Image:** {{media url=scanDataUri}}
 
-Produce a JSON object that strictly conforms to the 'AnalyzeScanForAnomaliesOutputSchema'.`,
+Your response MUST be a JSON object conforming to the 'AnalyzeScanForAnomaliesOutputSchema'.`,
 });
 
 const analyzeScanForAnomaliesFlow = ai.defineFlow(
