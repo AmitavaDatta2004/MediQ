@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Bot, Loader2, Sparkles } from 'lucide-react';
+import { PlusCircle, Bot, Loader2, Sparkles, AlertTriangle, Snowflake } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -30,12 +30,25 @@ import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { differenceInDays } from 'date-fns';
 
-const getStatusVariant = (status?: string) => {
+const getStatus = (item: Medicine): 'Near Expiry' | 'Out of Stock' | 'Low Stock' | 'In Stock' => {
+    const today = new Date();
+    const expiry = new Date(item.expiryDate);
+    if (differenceInDays(expiry, today) <= 30 && differenceInDays(expiry, today) > 0) {
+        return 'Near Expiry';
+    }
+    if (item.stock <= 0) return 'Out of Stock';
+    if (item.stock < 20) return 'Low Stock';
+    return 'In Stock';
+}
+
+const getStatusVariant = (status: Medicine['status']) => {
     switch (status) {
         case 'In Stock': return 'default';
         case 'Low Stock': return 'secondary';
         case 'Out of Stock': return 'destructive';
+        case 'Near Expiry': return 'destructive';
         default: return 'outline';
     }
 }
@@ -56,12 +69,6 @@ export default function StoreInventoryPage() {
   }, [firestore, user]);
 
   const { data: inventory, isLoading } = useCollection<Medicine>(inventoryCollectionRef);
-
-  const getStatus = (stock: number): 'In Stock' | 'Low Stock' | 'Out of Stock' => {
-    if (stock <= 0) return 'Out of Stock';
-    if (stock < 100) return 'Low Stock';
-    return 'In Stock';
-  }
 
   const handleAutoFill = async () => {
       if (!medicineName) {
@@ -134,11 +141,12 @@ export default function StoreInventoryPage() {
                     <TableHead>Stock Level</TableHead>
                     <TableHead>Expiry Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Notes</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
                 {inventory?.map(item => {
-                    const status = getStatus(item.stock);
+                    const status = getStatus(item);
                     return (
                         <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.name} ({item.strength})</TableCell>
@@ -146,9 +154,18 @@ export default function StoreInventoryPage() {
                             <TableCell>{item.stock}</TableCell>
                             <TableCell>{new Date(item.expiryDate).toLocaleDateString()}</TableCell>
                             <TableCell>
-                                <Badge variant={getStatusVariant(status)}>
+                                <Badge variant={getStatusVariant(status)} className="gap-1">
+                                    {status === 'Near Expiry' && <AlertTriangle className="h-3 w-3" />}
                                     {status}
                                 </Badge>
+                            </TableCell>
+                             <TableCell>
+                                {item.storageType === 'Cold' && (
+                                    <Badge variant="secondary" className="gap-1 bg-blue-100 text-blue-800">
+                                        <Snowflake className="h-3 w-3" />
+                                        Cold Storage
+                                    </Badge>
+                                )}
                             </TableCell>
                         </TableRow>
                     )

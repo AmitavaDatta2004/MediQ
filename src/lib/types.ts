@@ -1,6 +1,7 @@
 
 
 
+
 export type UserRole = 'patient' | 'doctor' | 'medicine_store';
 
 export type User = {
@@ -120,7 +121,7 @@ export type Medicine = {
     safetyNotes: string;
     stock: number;
     expiryDate: string;
-    status?: 'In Stock' | 'Low Stock' | 'Out of Stock';
+    status?: 'In Stock' | 'Low Stock' | 'Out of Stock' | 'Near Expiry';
 }
 
 export type MedicalReport = {
@@ -151,4 +152,5 @@ export type ScanImage = {
     urgencyClassification: 'Emergency' | 'Urgent' | 'Routine' | 'Normal';
   };
 };
+
 
