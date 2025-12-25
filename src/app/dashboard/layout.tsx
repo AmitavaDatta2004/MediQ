@@ -8,7 +8,7 @@ import { DashboardNav } from '@/components/dashboard-nav';
 import { Header } from '@/components/header';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { User } from '@/lib/types';
+import type { User, Patient, Doctor, MedicineStore } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardLayout({
