@@ -51,7 +51,7 @@ const textAnalysisPrompt = ai.definePrompt({
 
 **Instructions:**
 1.  **Summarize:** Briefly explain what the scan shows in simple terms. If it's impossible to make a diagnosis from a single image, state that clearly.
-2.  **Findings:** Identify critical and key findings, including their label, confidence, a brief explanation, and bounding box coordinates [ymin, xmin, ymax, xmax]. If there are no findings, return an empty array for 'findings'.
+2.  **Findings:** Identify critical and key findings. For each finding, provide its label, confidence, a brief explanation, and a precise bounding box. The bounding box coordinates [ymin, xmin, ymax, xmax] MUST accurately cover the size and location of the specific anomaly on the scan. Do not use generic sizes. If there are no findings, return an empty array for 'findings'.
 3.  **Recommendations:** Suggest potential health issues, specialists, and medications based on the scan.
 4.  **Classify:** Determine the urgency level.
 5.  **Disclaimer**: Add a standard medical disclaimer: "This is an AI-generated analysis and is not a substitute for professional medical advice. Consult a licensed radiologist for an accurate diagnosis."
