@@ -25,21 +25,14 @@ const AnalyzeScanForAnomaliesInputSchema = z.object({
 export type AnalyzeScanForAnomaliesInput = z.infer<typeof AnalyzeScanForAnomaliesInputSchema>;
 
 const AnalyzeScanForAnomaliesOutputSchema = z.object({
-  anomaliesDetected: z
-    .boolean()
-    .describe('Whether or not any anomalies were detected in the scan.'),
-  anomalyReport: z
-    .string()
-    .describe('A detailed report of the anomalies detected, if any.'),
-  heatmapDataUri: z
-    .string()
-    .optional()
-    .describe(
-      'A data URI containing heatmap visualization of potential anomalies, if any are detected.'
-    ),
-  urgencyClassification: z
-    .enum(['Emergency', 'Urgent', 'Routine', 'Normal'])
-    .describe('The urgency classification of the scan based on the anomalies detected.'),
+    summary: z.string().describe("A comprehensive summary of the scan, explaining what the image shows in simple terms. If it's impossible to make a diagnosis from a single image, state that clearly."),
+    criticalFindings: z.string().optional().describe("Any findings that require immediate medical attention. If none, this can be omitted."),
+    keyFindings: z.string().optional().describe("Important, non-critical observations, measurements, or identified structures."),
+    healthIssues: z.string().optional().describe("Identified health concerns or conditions suggested by the scan."),
+    recommendedSpecialists: z.string().optional().describe("Types of medical professionals to consult based on the findings (e.g., Neurologist, Cardiologist)."),
+    recommendedMedications: z.string().optional().describe("AI-suggested medications or treatments based on the findings. This is not medical advice."),
+    analyzedImageUrl: z.string().describe("A data URI of the analyzed image. This image should have any detected anomalies clearly marked with squares or outlines. It should be the same size as the input image."),
+    urgencyClassification: z.enum(['Emergency', 'Urgent', 'Routine', 'Normal']).describe('The urgency classification of the scan based on the anomalies detected.'),
 });
 export type AnalyzeScanForAnomaliesOutput = z.infer<typeof AnalyzeScanForAnomaliesOutputSchema>;
 
@@ -53,22 +46,28 @@ const prompt = ai.definePrompt({
   name: 'analyzeScanForAnomaliesPrompt',
   input: {schema: AnalyzeScanForAnomaliesInputSchema},
   output: {schema: AnalyzeScanForAnomaliesOutputSchema},
-  prompt: `You are an AI assistant specializing in analyzing medical images.
+  prompt: `You are a world-class AI radiologist. Your task is to analyze a medical scan image and provide a detailed, structured report in a format a patient can understand, while also being useful for a medical professional.
 
-You will receive a medical image ({{{scanType}}}) and your task is to identify any potential anomalies or areas of concern.
+You will receive a medical image ({{{scanType}}}) and optional patient details.
 
-Based on your analysis, provide a detailed report of the anomalies detected (if any) and classify the urgency of the scan.
+**Analysis Steps:**
+1.  **Summarize the Image:** Provide a clear, simple summary of what the scan shows. Explain the type of scan (MRI, CT, etc.) and what part of the body is being viewed. IMPORTANT: State clearly that a single image is not sufficient for a complete diagnosis.
+2.  **Identify Findings:** Carefully examine the image for any abnormalities, points of interest, or significant markers.
+3.  **Structure the Output:** Populate the JSON output with your findings.
+    *   `summary`: Your detailed overview.
+    *   `criticalFindings`: Note anything that looks like an emergency.
+    *   `keyFindings`: Note any other important observations.
+    *   `healthIssues`: List potential conditions suggested by the findings.
+    *   `recommendedSpecialists`: Suggest the type of doctor to see.
+    *   `recommendedMedications`: Suggest potential medications (with a disclaimer).
+    *   `urgencyClassification`: Classify the scan's urgency.
+4.  **Mark the Image:** Create and return a new image as a data URI in the 'analyzedImageUrl' field. This image MUST be the same dimensions as the input. On this image, draw clear boxes or outlines around any areas you refer to in your findings. If there are no specific findings to mark, return the original image.
 
-Patient Details: {{{patientDetails}}}
+**Patient Details:** {{{patientDetails}}}
 
-Scan Image: {{media url=scanDataUri}}
+**Scan Image:** {{media url=scanDataUri}}
 
-Output should be formatted as a JSON object that conforms to AnalyzeScanForAnomaliesOutputSchema. Be as detailed as possible in the anomalyReport field.
-
-If no anomalies are detected, set anomaliesDetected to false, provide a report stating "No anomalies detected", and set urgencyClassification to "Normal".
-
-If anomalies are detected, then heatmapDataUri should also be returned, providing a data URI for a heatmap visualization highlighting these anomalies.
-`,
+Produce a JSON object that strictly conforms to the 'AnalyzeScanForAnomaliesOutputSchema'.`,
 });
 
 const analyzeScanForAnomaliesFlow = ai.defineFlow(

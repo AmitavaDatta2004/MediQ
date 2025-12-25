@@ -119,15 +119,19 @@ export type MedicalReport = {
 }
 
 export type ScanImage = {
-    id: string;
-    patientId: string;
-    uploadDate: string;
-    scanType: 'X-ray' | 'CT' | 'MRI';
-    imageUrl: string;
-    aiAnalysis: {
-        anomaliesDetected: boolean;
-        anomalyReport: string;
-        heatmapDataUri?: string;
-        urgencyClassification: 'Emergency' | 'Urgent' | 'Routine' | 'Normal';
-    }
-}
+  id: string;
+  patientId: string;
+  uploadDate: string;
+  scanType: 'X-ray' | 'CT' | 'MRI';
+  imageUrl: string;
+  analyzedImageUrl?: string;
+  aiAnalysis: {
+    summary: string;
+    criticalFindings?: string;
+    keyFindings?: string;
+    healthIssues?: string;
+    recommendedSpecialists?: string;
+    recommendedMedications?: string;
+    urgencyClassification: 'Emergency' | 'Urgent' | 'Routine' | 'Normal';
+  };
+};
