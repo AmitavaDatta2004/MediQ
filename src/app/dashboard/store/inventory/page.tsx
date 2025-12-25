@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -17,6 +18,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 const mockInventory = [
     { id: 'MED001', name: 'Paracetamol 500mg', stock: 1200, status: 'In Stock', expiry: '12/2025' },
@@ -37,7 +41,10 @@ const getStatusVariant = (status: string) => {
 }
 
 export default function StoreInventoryPage() {
+  const [isAdding, setIsAdding] = useState(false);
+
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-row justify-between items-center">
         <div>
@@ -46,7 +53,7 @@ export default function StoreInventoryPage() {
             View and manage your medicine stock.
             </CardDescription>
         </div>
-        <Button>
+        <Button onClick={() => setIsAdding(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add New Medicine
         </Button>
@@ -80,5 +87,37 @@ export default function StoreInventoryPage() {
         </Table>
       </CardContent>
     </Card>
+
+    <Dialog open={isAdding} onOpenChange={setIsAdding}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Add New Medicine</DialogTitle>
+                <DialogDescription>
+                    Enter the details of the new medicine to add it to your inventory.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                    <Label htmlFor="name">Medicine Name</Label>
+                    <Input id="name" placeholder="e.g., Paracetamol 500mg" />
+                </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="stock">Stock Level</Label>
+                        <Input id="stock" type="number" placeholder="e.g., 100" />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="expiry">Expiry Date</Label>
+                        <Input id="expiry" type="month" />
+                    </div>
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAdding(false)}>Cancel</Button>
+                <Button onClick={() => setIsAdding(false)}>Add to Inventory</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
