@@ -24,7 +24,7 @@ export const GenerateMedicineDetailsOutputSchema = z.object({
     storageType: z.enum(['Normal', 'Cold']).describe("The required storage condition, 'Cold' for refrigeration, 'Normal' for room temperature."),
     commonUses: z.string().describe("A brief, one-sentence summary of what the medicine is commonly used for."),
     safetyNotes: z.string().describe("Any important safety warnings, common side effects, or contraindications."),
-    expiryDate: z.string().format("date").describe("Suggest a reasonable expiry date in YYYY-MM-DD format, typically 2 years from today."),
+    expiryDate: z.string().describe("Suggest a reasonable expiry date in YYYY-MM-DD format, typically 2 years from today."),
     stock: z.number().describe("Provide a reasonable starting stock number, like 100 or 200.")
 });
 export type GenerateMedicineDetailsOutput = z.infer<typeof GenerateMedicineDetailsOutputSchema>;
