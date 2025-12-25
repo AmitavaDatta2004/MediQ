@@ -240,6 +240,25 @@
         "email"
       ]
     },
+    "Medicine": {
+      "title": "Medicine",
+      "description": "Represents a single medicine in a pharmacy's inventory.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "description": "The trade name of the medicine." },
+        "strength": { "type": "string", "description": "The strength of the medicine, e.g., '500mg'." },
+        "saltComposition": { "type": "string", "description": "The active chemical ingredients." },
+        "category": { "type": "string", "description": "Medical category, e.g., 'Antibiotic', 'Analgesic'." },
+        "isPrescriptionRequired": { "type": "boolean", "description": "Whether a prescription is required." },
+        "storageType": { "type": "string", "enum": ["Normal", "Cold"], "description": "Required storage condition." },
+        "commonUses": { "type": "string", "description": "A brief summary of what the medicine is used for." },
+        "safetyNotes": { "type": "string", "description": "Important safety warnings or contraindications." },
+        "stock": { "type": "number", "description": "The current quantity in stock." },
+        "expiryDate": { "type": "string", "format": "date", "description": "The expiration date." }
+      },
+      "required": ["id", "name", "strength", "category", "isPrescriptionRequired", "stock", "expiryDate"]
+    },
     "MedicalReport": {
       "title": "MedicalReport",
       "type": "object",
@@ -319,18 +338,20 @@
           "format": "uri",
           "description": "URL of the stored scan image."
         },
+        "analyzedImageUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the AI-analyzed image with heatmaps or markings."
+        },
         "aiAnalysis": {
           "type": "object",
           "properties": {
-            "anomaliesDetected": {
-              "type": "boolean"
-            },
-            "anomalyReport": {
-              "type": "string"
-            },
-            "heatmapDataUri": {
-              "type": "string"
-            },
+            "summary": { "type": "string" },
+            "criticalFindings": { "type": "string" },
+            "keyFindings": { "type": "string" },
+            "healthIssues": { "type": "string" },
+            "recommendedSpecialists": { "type": "string" },
+            "recommendedMedications": { "type": "string" },
             "urgencyClassification": {
               "type": "string",
               "enum": [
@@ -608,6 +629,16 @@
             "$ref": "#/entities/MedicineStore"
           },
           "description": "Stores medicine store profile information. The document ID must match the user's UID."
+        }
+      },
+      {
+        "path": "/medicine_stores/{storeId}/inventory/{medicineId}",
+        "definition": {
+          "entityName": "Medicine",
+          "schema": {
+            "$ref": "#/entities/Medicine"
+          },
+          "description": "Stores the inventory for a specific medicine store."
         }
       },
       {

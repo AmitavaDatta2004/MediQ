@@ -1,5 +1,6 @@
 
 
+
 export type UserRole = 'patient' | 'doctor' | 'medicine_store';
 
 export type User = {
@@ -107,6 +108,21 @@ export type MedicineStore = {
   }
 };
 
+export type Medicine = {
+    id: string;
+    name: string;
+    strength: string;
+    saltComposition: string;
+    category: string;
+    isPrescriptionRequired: boolean;
+    storageType: 'Normal' | 'Cold';
+    commonUses: string;
+    safetyNotes: string;
+    stock: number;
+    expiryDate: string;
+    status?: 'In Stock' | 'Low Stock' | 'Out of Stock';
+}
+
 export type MedicalReport = {
     id: string;
     patientId: string;
@@ -135,3 +151,4 @@ export type ScanImage = {
     urgencyClassification: 'Emergency' | 'Urgent' | 'Routine' | 'Normal';
   };
 };
+
