@@ -1,15 +1,15 @@
 'use client';
 import React, { useState } from 'react';
-import { UploadCloud, Loader2, ScanEye, FileText, Wand2, ArrowRight, Download, AlertTriangle, ShieldCheck } from 'lucide-react';
-import { ImageAnnotator } from '@/components/image-annotator';
+import { UploadCloud, Loader2, ScanEye, FileText, Wand2, ArrowRight, Download, AlertTriangle, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
-import { analyzeScanForAnomaliesAction, generateAnalyzedImageAction } from '@/app/actions';
+import { analyzeMedicalDocumentAction, processMedicalImageAction } from '@/app/actions';
 import type { ScanImage } from '@/lib/types';
-import type { ImageAnalysisOutput, TextAnalysisOutput } from '@/ai/schemas';
+import type { TextAnalysisOutput } from '@/ai/schemas';
+import { ImageAnnotator } from '@/components/image-annotator';
 
 type UploadedFile = {
   id: string;
@@ -18,26 +18,9 @@ type UploadedFile = {
   date: string;
   previewUrl: string;
   processedUrl?: string;
-  analysisResult?: TextAnalysisOutput & Partial<ImageAnalysisOutput>;
+  analysisResult?: TextAnalysisOutput;
   scanId: string;
 };
-
-type AnalysisStep = 
-  | 'idle'
-  | 'preprocessing'
-  | 'analyzingText'
-  | 'generatingImage'
-  | 'complete'
-  | 'error';
-
-const analysisSteps: Record<AnalysisStep, { text: string; progress: number }> = {
-    idle: { text: 'Ready for analysis', progress: 0 },
-    preprocessing: { text: 'Preprocessing and validating image...', progress: 15 },
-    analyzingText: { text: 'Performing text-based analysis...', progress: 45 },
-    generatingImage: { text: 'Generating annotated image...', progress: 80 },
-    complete: { text: 'Analysis complete!', progress: 100 },
-    error: { text: 'An error occurred.', progress: 100 },
-}
 
 export default function ScanAnalysisPage() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -46,6 +29,8 @@ export default function ScanAnalysisPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const analysisResultsRef = React.useRef<HTMLDivElement>(null);
+
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !user) return;
@@ -59,7 +44,7 @@ export default function ScanAnalysisPage() {
       const base64DataUrl = reader.result as string;
       
       const fileId = Date.now().toString();
-      const newFile: Partial<UploadedFile> & { previewUrl: string } = {
+      const newFile: UploadedFile = {
         id: fileId,
         name: file.name,
         type: file.type,
@@ -67,33 +52,28 @@ export default function ScanAnalysisPage() {
         previewUrl: base64DataUrl,
         scanId: uuidv4()
       };
-      setFiles(prev => [newFile as UploadedFile, ...prev]);
+      setFiles(prev => [newFile, ...prev]);
 
       try {
-        setProcessingStatus('Analyzing Scan...');
-        const textResult = await analyzeScanForAnomaliesAction({ scanDataUri: base64DataUrl, scanType: 'X-ray' });
+        setProcessingStatus('Denoising & Cropping...');
+        const processedResult = await processMedicalImageAction({ scanDataUri: base64DataUrl, scanType: 'X-ray' });
+        const processedImageUrl = processedResult.analyzedImageUrl;
         
-        updateFileState(fileId, { analysisResult: textResult });
+        setFiles(prev => prev.map(f => f.id === fileId ? { ...f, processedUrl: processedImageUrl } : f));
 
-        setProcessingStatus('Generating Annotated Image...');
-        const imageResult = await generateAnalyzedImageAction({ scanDataUri: base64DataUrl, analysis: textResult });
+        setProcessingStatus('Analyzing Scan...');
+        const textResult = await analyzeMedicalDocumentAction({ scanDataUri: processedImageUrl, scanType: 'X-ray' });
         
-        updateFileState(fileId, { 
-            processedUrl: imageResult.analyzedImageUrl, 
-            analysisResult: { ...textResult, analyzedImageUrl: imageResult.analyzedImageUrl } 
-        });
+        setFiles(prev => prev.map(f => f.id === fileId ? { ...f, analysisResult: textResult } : f));
 
         const storage = getStorage();
         const originalImageRef = ref(storage, `patients/${user.uid}/scan_images/${newFile.scanId}_original`);
         const originalImageSnapshot = await uploadString(originalImageRef, base64DataUrl, 'data_url');
         const originalImageUrl = await getDownloadURL(originalImageSnapshot.ref);
 
-        let analyzedImageUrl = originalImageUrl;
-        if (imageResult.analyzedImageUrl) {
-          const analyzedImageRef = ref(storage, `patients/${user.uid}/scan_images/${newFile.scanId}_analyzed`);
-          const analyzedImageSnapshot = await uploadString(analyzedImageRef, imageResult.analyzedImageUrl, 'data_url');
-          analyzedImageUrl = await getDownloadURL(analyzedImageSnapshot.ref);
-        }
+        const analyzedImageRef = ref(storage, `patients/${user.uid}/scan_images/${newFile.scanId}_analyzed`);
+        const analyzedImageSnapshot = await uploadString(analyzedImageRef, processedImageUrl, 'data_url');
+        const finalAnalyzedImageUrl = await getDownloadURL(analyzedImageSnapshot.ref);
 
         const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
         const finalScanData: ScanImage = {
@@ -102,7 +82,7 @@ export default function ScanAnalysisPage() {
               uploadDate: new Date().toISOString(),
               scanType: 'X-ray',
               imageUrl: originalImageUrl,
-              analyzedImageUrl: analyzedImageUrl,
+              analyzedImageUrl: finalAnalyzedImageUrl,
               aiAnalysis: textResult
         };
         await addDoc(scanCollectionRef, finalScanData);
@@ -120,10 +100,6 @@ export default function ScanAnalysisPage() {
     reader.readAsDataURL(file);
   };
   
-  const updateFileState = (fileId: string, updates: Partial<UploadedFile>) => {
-      setFiles(prev => prev.map(f => f.id === fileId ? { ...f, ...updates } : f));
-  }
-
   const downloadAnnotatedImage = async (file: UploadedFile) => {
     const imageUrl = file.processedUrl || file.previewUrl;
     if (!imageUrl || !file.analysisResult) return;
@@ -137,12 +113,9 @@ export default function ScanAnalysisPage() {
       canvas.height = img.height;
       
       if (ctx) {
-        // Draw Image
         ctx.drawImage(img, 0, 0);
-
-        // Draw Annotations
         ctx.lineWidth = 5;
-        ctx.strokeStyle = '#ef4444'; // Red-500
+        ctx.strokeStyle = '#ef4444';
         ctx.font = 'bold 24px Inter, sans-serif';
 
         const findings = file.analysisResult?.findings || [];
@@ -153,23 +126,16 @@ export default function ScanAnalysisPage() {
              const y = ymin * img.height;
              const w = (xmax - xmin) * img.width;
              const h = (ymax - ymin) * img.height;
-
-             // Box
              ctx.strokeRect(x, y, w, h);
-             
-             // Label bg
              const label = `${idx + 1}: ${finding.label}`;
              const textMetrics = ctx.measureText(label);
              ctx.fillStyle = 'rgba(0,0,0,0.7)';
              ctx.fillRect(x, y - 30, textMetrics.width + 10, 30);
-             
-             // Label text
              ctx.fillStyle = '#ffffff';
              ctx.fillText(label, x + 5, y - 8);
           }
         });
 
-        // Trigger Download
         const link = document.createElement('a');
         link.download = `processed-analysis-${file.name}.png`;
         link.href = canvas.toDataURL('image/png');
@@ -187,7 +153,6 @@ export default function ScanAnalysisPage() {
         <p className="text-gray-500 text-lg">Upload X-rays, MRI scans, or medical documents for instant AI analysis.</p>
       </div>
       
-      {/* Upload Zone */}
       <div className="relative overflow-hidden rounded-3xl border-2 border-dashed border-primary/20 bg-white hover:border-primary/40 hover:bg-primary/5 transition-all duration-300 group cursor-pointer shadow-sm hover:shadow-md">
          <input type="file" id="fileUpload" className="hidden" accept="image/*,.pdf" onChange={handleFileUpload} disabled={isUploading} />
          <label htmlFor="fileUpload" className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-12">
@@ -222,7 +187,6 @@ export default function ScanAnalysisPage() {
          {files.map(file => (
            <div key={file.id} className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden transition-all hover:shadow-2xl hover:shadow-gray-200/60">
               
-              {/* Header Info */}
               <div className="flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 gap-4">
                  <div className="flex items-center gap-5">
                     <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 text-primary">
@@ -246,7 +210,6 @@ export default function ScanAnalysisPage() {
               </div>
 
               <div className="p-6 md:p-10 space-y-12">
-                {/* Visual Pipeline */}
                 {file.type.includes('image') && (
                   <div className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-8 items-center">
@@ -274,8 +237,8 @@ export default function ScanAnalysisPage() {
                             <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">Denoised & Cropped</span>
                         </div>
                         <div className="relative aspect-[4/3] bg-gray-900 rounded-2xl overflow-hidden border-2 border-primary/20 shadow-lg ring-4 ring-primary/5">
-                          {file.analysisResult?.analyzedImageUrl ? (
-                            <img src={file.analysisResult.analyzedImageUrl} alt="Processed" className="w-full h-full object-contain" />
+                          {file.processedUrl ? (
+                            <img src={file.processedUrl} alt="Processed" className="w-full h-full object-contain" />
                           ) : (
                              <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 gap-2">
                                 <ScanEye className="w-8 h-8 opacity-50" />
@@ -307,8 +270,8 @@ export default function ScanAnalysisPage() {
                         </div>
                         
                         <div className="min-h-[500px] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                             {(file.analysisResult?.analyzedImageUrl || file.previewUrl) ? (
-                                    <ImageAnnotator imageUrl={file.analysisResult?.analyzedImageUrl || file.previewUrl || ''} findings={file.analysisResult?.findings || []} />
+                             {(file.processedUrl || file.previewUrl) ? (
+                                    <ImageAnnotator imageUrl={file.processedUrl || file.previewUrl || ''} findings={file.analysisResult?.findings || []} />
                                 ) : (
                                     <div className="text-gray-500 flex flex-col items-center">
                                         <Loader2 className="w-8 h-8 animate-spin mb-2" />
@@ -321,7 +284,6 @@ export default function ScanAnalysisPage() {
                   </div>
                 )}
 
-                {/* Analysis Report Text */}
                 {file.analysisResult && (
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8 border-t border-gray-100">
                         <div className="lg:col-span-1 space-y-6">
@@ -371,7 +333,7 @@ export default function ScanAnalysisPage() {
                                     ))
                                 ) : (
                                     <div className="col-span-2 p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-300 text-center">
-                                        <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3 opacity-50" />
+                                        <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto mb-3 opacity-50" />
                                         <p className="text-gray-500 font-medium">No specific anomalies detected in the AI analysis.</p>
                                     </div>
                                 )}

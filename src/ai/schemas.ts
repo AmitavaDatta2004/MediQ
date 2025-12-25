@@ -71,6 +71,10 @@ export const ImageAnalysisOutputSchema = z.object({
 });
 export type ImageAnalysisOutput = z.infer<typeof ImageAnalysisOutputSchema>;
 
+export const ProcessImageOutputSchema = z.object({
+    processedImageUrl: z.string().describe("A data URI of the denoised and cropped image."),
+});
+
 
 export const ReadPrescriptionInputSchema = z.object({
   storeId: z.string().describe("The ID of the medicine store."),
@@ -90,4 +94,5 @@ export const AnalyzedMedicineSchema = z.object({
 export const ReadPrescriptionOutputSchema = z.object({
   medicines: z.array(AnalyzedMedicineSchema),
 });
-export type ReadPrescriptionOutput = z.infer<typeof ReadPrescriptionOutputSchema>;
+export type ReadPrescriptionOutput = z
+  .infer<typeof ReadPrescriptionOutputSchema>;
