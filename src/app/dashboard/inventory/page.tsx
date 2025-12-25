@@ -9,15 +9,12 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { useDoc, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { Patient, Allergy, ChronicCondition } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { X, Plus, FileScan, HeartPulse } from 'lucide-react';
+import { X, Plus, FileScan, HeartPulse, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
-import { Separator } from '@/components/ui/separator';
 
 export default function HealthInventoryPage() {
     const { user } = useUser();
@@ -85,6 +82,13 @@ export default function HealthInventoryPage() {
         }
     }
 
+    const handleFileUpload = (fileType: string) => {
+        toast({
+            title: `Uploading ${fileType}...`,
+            description: "This feature is coming soon!"
+        })
+    }
+
     const isLoading = isPatientLoading || isAllergiesLoading || isConditionsLoading;
 
     if (isLoading) {
@@ -100,7 +104,7 @@ export default function HealthInventoryPage() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2 space-y-8">
                     <Card>
                         <CardHeader>
@@ -180,44 +184,30 @@ export default function HealthInventoryPage() {
                     </div>
                 </div>
                 <div className="lg:col-span-1 space-y-6">
-                    <Card className="bg-primary/10 border-primary/20">
-                        <CardHeader className="flex-row items-center gap-4">
-                            <FileScan className="w-8 h-8 text-primary" />
-                            <div>
-                                <CardTitle>Medical Reports</CardTitle>
-                                <CardDescription className="text-foreground/80">Upload blood tests and lab reports.</CardDescription>
-                            </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Archived Medical Reports</CardTitle>
+                            <CardDescription>Upload past blood tests, lab results, and other documents to build your health history.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button asChild className="w-full">
-                                <Link href="/dashboard/report-analysis">Upload & Analyze Report</Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-accent/10 border-accent/20">
-                        <CardHeader className="flex-row items-center gap-4">
-                            <HeartPulse className="w-8 h-8 text-accent" />
-                            <div>
-                                <CardTitle>Imaging & Scans</CardTitle>
-                                <CardDescription className="text-foreground/80">Upload X-Rays, CT Scans, and MRIs.</CardDescription>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <Button asChild className="w-full" variant="secondary">
-                                <Link href="/dashboard/scan-analysis">Upload & Analyze Scan</Link>
-                            </Button>
+                            <label htmlFor="report-archive-upload" className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
+                                <Upload className="w-8 h-8 text-muted-foreground" />
+                                <p className="mt-2 text-sm text-muted-foreground">Upload Report</p>
+                                 <Input id="report-archive-upload" type="file" className="hidden" onChange={() => handleFileUpload('report')} accept="image/*,application/pdf" />
+                              </label>
                         </CardContent>
                     </Card>
                      <Card>
                         <CardHeader>
-                            <CardTitle>Coming Soon</CardTitle>
-                            <CardDescription>More inventory features are on the way.</CardDescription>
+                            <CardTitle>Archived Imaging & Scans</CardTitle>
+                            <CardDescription>Upload past X-Rays, CT Scans, and MRIs to provide a complete picture of your health journey.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-2 text-sm text-muted-foreground">
-                            <p>• Medication History</p>
-                            <p>• Past Prescriptions Archive</p>
-                            <p>• Family Medical History</p>
-                            <p>• Symptoms & Lifestyle Tracking</p>
+                        <CardContent>
+                           <label htmlFor="scan-archive-upload" className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
+                                <Upload className="w-8 h-8 text-muted-foreground" />
+                                <p className="mt-2 text-sm text-muted-foreground">Upload Scan</p>
+                                 <Input id="scan-archive-upload" type="file" className="hidden" onChange={() => handleFileUpload('scan')} accept="image/*" />
+                              </label>
                         </CardContent>
                     </Card>
                 </div>
