@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, addDoc, doc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import type { Medicine } from '@/lib/types';
 import { generateMedicineDetailsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
