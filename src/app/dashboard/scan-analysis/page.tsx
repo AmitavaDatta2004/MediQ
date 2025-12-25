@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -84,7 +85,7 @@ export default function ScanAnalysisPage() {
           aiAnalysis: {
             anomaliesDetected: result.anomaliesDetected,
             anomalyReport: result.anomalyReport,
-            heatmapDataUri: result.heatmapDataUri, // This could also be stored in Storage if it's large
+            heatmapDataUri: result.heatmapDataUri ?? null,
             urgencyClassification: result.urgencyClassification
           }
       });
@@ -231,3 +232,5 @@ export default function ScanAnalysisPage() {
     </div>
   );
 }
+
+    

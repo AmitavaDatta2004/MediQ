@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from '@/components/ui/button';
 import {
@@ -183,7 +184,7 @@ export default function HealthInventoryPage() {
                     aiAnalysis: {
                         anomaliesDetected: analysisResult.anomaliesDetected,
                         anomalyReport: analysisResult.anomalyReport,
-                        heatmapDataUri: analysisResult.heatmapDataUri,
+                        heatmapDataUri: analysisResult.heatmapDataUri ?? null,
                         urgencyClassification: analysisResult.urgencyClassification
                     }
                 });
@@ -345,3 +346,5 @@ export default function HealthInventoryPage() {
         </div>
     )
 }
+
+    
