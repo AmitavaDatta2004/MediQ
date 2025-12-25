@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import React from 'react';
 import Image from 'next/image';
 import { Upload, Loader2, Image as ImageIcon, AlertCircle, ShieldCheck, CheckCircle, BrainCircuit, Bot, FileText, Pill, Users, ChevronDown, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
