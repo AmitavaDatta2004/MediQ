@@ -66,7 +66,7 @@ async function handleGoogleSignUp(user: User, role: Role) {
             phone: '555-1234'
         };
         const storeDocRef = doc(firestore, 'medicine_stores', user.uid);
-        await setDocumentNonBlocking(storeDocRef, storeData, { merge: true });
+        await setDocumentNonBlocking(storeDocRef, profileData, { merge: true });
     }
 
     // Create base user role document
