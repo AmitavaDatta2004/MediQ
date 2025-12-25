@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-   serverActions: {
+  serverActions: {
     bodySizeLimit: '10mb',
   },
 };
