@@ -8,8 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { FileText, PlusCircle } from 'lucide-react';
-import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, addDocumentNonBlocking } from '@/firebase';
+import { FileText, PlusCircle, Loader2 } from 'lucide-react';
+import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import type { Prescription, Doctor, Order, MedicineStore, User } from '@/lib/types';
 import { useMemo, useState } from 'react';
@@ -24,7 +24,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -32,12 +31,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { readPrescriptionAndCheckInventoryAction } from '@/app/actions';
 
 export default function PrescriptionsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isOrdering, setIsOrdering] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
 
@@ -88,32 +89,53 @@ export default function PrescriptionsPage() {
         return;
     }
 
-    const orderId = uuidv4();
-    const orderData: Order = {
-        id: orderId,
-        patientId: user.uid,
-        medicineStoreId: selectedStore,
-        prescriptionId: selectedPrescription.id,
-        orderDate: new Date().toISOString(),
-        status: 'Processing',
-    };
+    setIsPlacingOrder(true);
+    toast({ title: "Analyzing Prescription...", description: "AI is checking inventory. Please wait." });
 
-    // Create order in patient's subcollection
-    const patientOrderRef = doc(firestore, `patients/${user.uid}/orders`, orderId);
-    setDocumentNonBlocking(patientOrderRef, orderData, { merge: false });
-    
-    // Denormalize order in medicine store's subcollection
-    const storeOrderRef = doc(firestore, `medicine_stores/${selectedStore}/orders`, orderId);
-    setDocumentNonBlocking(storeOrderRef, orderData, { merge: false });
+    try {
+        const analysisResult = await readPrescriptionAndCheckInventoryAction({
+            storeId: selectedStore,
+            patientId: user.uid,
+            prescriptionId: selectedPrescription.id,
+        });
 
-    toast({
-        title: "Order Placed!",
-        description: `Your order for prescription #${selectedPrescription.id.substring(0,6)}... has been sent.`,
-    });
+        const orderId = uuidv4();
+        const orderData: Order = {
+            id: orderId,
+            patientId: user.uid,
+            medicineStoreId: selectedStore,
+            prescriptionId: selectedPrescription.id,
+            orderDate: new Date().toISOString(),
+            status: 'Processing',
+            medicines: analysisResult.medicines,
+        };
 
-    setIsOrdering(false);
-    setSelectedPrescription(null);
-    setSelectedStore(null);
+        // Create order in patient's subcollection
+        const patientOrderRef = doc(firestore, `patients/${user.uid}/orders`, orderId);
+        setDocumentNonBlocking(patientOrderRef, orderData, { merge: false });
+        
+        // Denormalize order in medicine store's subcollection
+        const storeOrderRef = doc(firestore, `medicine_stores/${selectedStore}/orders`, orderId);
+        setDocumentNonBlocking(storeOrderRef, orderData, { merge: false });
+
+        toast({
+            title: "Order Placed!",
+            description: `Your order for prescription #${selectedPrescription.id.substring(0,6)}... has been sent.`,
+        });
+
+    } catch (error) {
+        console.error("Order placement error:", error);
+        toast({
+            variant: "destructive",
+            title: "Order Failed",
+            description: "There was an error placing your order. Please try again.",
+        });
+    } finally {
+        setIsPlacingOrder(false);
+        setIsOrdering(false);
+        setSelectedPrescription(null);
+        setSelectedStore(null);
+    }
   };
 
 
@@ -176,13 +198,13 @@ export default function PrescriptionsPage() {
             <DialogHeader>
                 <DialogTitle>Order from Prescription</DialogTitle>
                 <DialogDescription>
-                    Select a medicine store to fulfill this prescription.
+                    Select a medicine store to fulfill this prescription. The AI will check inventory before placing the order.
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                     <Label htmlFor="store">Medicine Store</Label>
-                     <Select onValueChange={setSelectedStore}>
+                     <Select onValueChange={setSelectedStore} disabled={isPlacingOrder}>
                         <SelectTrigger id="store">
                             <SelectValue placeholder="Select a store..." />
                         </SelectTrigger>
@@ -197,8 +219,11 @@ export default function PrescriptionsPage() {
                 </div>
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setIsOrdering(false)}>Cancel</Button>
-                <Button onClick={handlePlaceOrder}>Place Order</Button>
+                <Button variant="outline" onClick={() => setIsOrdering(false)} disabled={isPlacingOrder}>Cancel</Button>
+                <Button onClick={handlePlaceOrder} disabled={isPlacingOrder || !selectedStore}>
+                    {isPlacingOrder && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Place Order
+                </Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

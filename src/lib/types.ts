@@ -3,6 +3,7 @@
 
 
 
+
 export type UserRole = 'patient' | 'doctor' | 'medicine_store';
 
 export type User = {
@@ -45,16 +46,23 @@ export type Appointment = {
   status: 'Upcoming' | 'Completed' | 'Cancelled';
 };
 
+export type PrescribedMedicine = {
+  name: string;
+  dosage: string;
+  frequency: string;
+};
+
+export type AnalyzedMedicine = PrescribedMedicine & {
+  inventoryStatus: 'Available' | 'Low Stock' | 'Out of Stock' | 'Unknown';
+};
+
+
 export type Prescription = {
   id:string;
   patientId: string;
   doctorId: string;
   date: string;
-  medicines: {
-    name: string;
-    dosage: string;
-    frequency: string;
-  }[];
+  medicines: PrescribedMedicine[];
   notes?: string;
 };
 
@@ -65,6 +73,7 @@ export type Order = {
   prescriptionId: string;
   orderDate: string;
   status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+  medicines: AnalyzedMedicine[];
 };
 
 export type DataConsent = {
@@ -153,6 +162,7 @@ export type ScanImage = {
     urgencyClassification: 'Emergency' | 'Urgent' | 'Routine' | 'Normal';
   };
 };
+
 
 
 

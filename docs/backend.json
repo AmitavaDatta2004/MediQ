@@ -504,6 +504,23 @@
             "Delivered",
             "Cancelled"
           ]
+        },
+        "medicines": {
+          "type": "array",
+          "description": "AI-analyzed list of medicines from the prescription with inventory status.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "dosage": { "type": "string" },
+              "frequency": { "type": "string" },
+              "inventoryStatus": {
+                "type": "string",
+                "enum": ["Available", "Low Stock", "Out of Stock", "Unknown"]
+              }
+            },
+            "required": ["name", "dosage", "frequency", "inventoryStatus"]
+          }
         }
       },
       "required": [
@@ -512,7 +529,8 @@
         "medicineStoreId",
         "prescriptionId",
         "orderDate",
-        "status"
+        "status",
+        "medicines"
       ]
     },
     "DataConsent": {

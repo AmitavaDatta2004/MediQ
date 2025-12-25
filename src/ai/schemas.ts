@@ -55,3 +55,22 @@ export const ImageAnalysisOutputSchema = z.object({
   analyzedImageUrl: z.string().describe("A data URI of the analyzed image. This image should have any detected anomalies clearly marked with squares or outlines, based on the provided analysis. It should be the same size as the input image."),
 });
 export type ImageAnalysisOutput = z.infer<typeof ImageAnalysisOutputSchema>;
+
+export const ReadPrescriptionInputSchema = z.object({
+  storeId: z.string().describe("The ID of the medicine store to check inventory against."),
+  patientId: z.string().describe("The ID of the patient who owns the prescription."),
+  prescriptionId: z.string().describe("The ID of the prescription to analyze."),
+});
+export type ReadPrescriptionInput = z.infer<typeof ReadPrescriptionInputSchema>;
+
+export const AnalyzedMedicineSchema = z.object({
+    name: z.string(),
+    dosage: z.string(),
+    frequency: z.string(),
+    inventoryStatus: z.enum(['Available', 'Low Stock', 'Out of Stock', 'Unknown']),
+});
+
+export const ReadPrescriptionOutputSchema = z.object({
+    medicines: z.array(AnalyzedMedicineSchema).describe("The list of medicines from the prescription, including their inventory status.")
+});
+export type ReadPrescriptionOutput = z.infer<typeof ReadPrescriptionOutputSchema>;
