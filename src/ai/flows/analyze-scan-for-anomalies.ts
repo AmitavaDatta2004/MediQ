@@ -7,7 +7,6 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
 import { ImageAnalysisInputSchema, ImageAnalysisOutputSchema, TextAnalysisInputSchema, TextAnalysisOutputSchema, type ImageAnalysisInput, type ImageAnalysisOutput, type TextAnalysisInput, type TextAnalysisOutput } from '@/ai/schemas';
 
 export async function analyzeScanForAnomalies(
