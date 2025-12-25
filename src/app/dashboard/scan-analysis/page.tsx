@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Upload, Loader2, Image as ImageIcon, AlertCircle, ShieldCheck, CheckCircle, BrainCircuit, Bot, FileText, Pill, Users, ChevronDown } from 'lucide-react';
+import { Upload, Loader2, Image as ImageIcon, AlertCircle, ShieldCheck, CheckCircle, BrainCircuit, Bot, FileText, Pill, Users, ChevronDown, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { analyzeScanForAnomaliesAction } from '@/app/actions';
-import type { AnalyzeScanForAnomaliesOutput } from '@/ai/flows/analyze-scan-for-anomalies';
+import { analyzeScanForAnomaliesAction, generateAnalyzedImageAction } from '@/app/actions';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useUser, useFirestore } from '@/firebase';
@@ -25,33 +24,33 @@ import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage"
 import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
+import type { TextAnalysisOutput, ImageAnalysisOutput } from '@/ai/schemas';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const placeholderImageUrl = "https://picsum.photos/seed/201/600/400";
 
 type AnalysisStep = 
   | 'idle'
   | 'preprocessing'
-  | 'analyzing'
-  | 'detecting'
-  | 'heatmap'
-  | 'classifying'
+  | 'analyzingText'
+  | 'generatingImage'
   | 'complete'
   | 'error';
 
 const analysisSteps: Record<AnalysisStep, { text: string; progress: number }> = {
     idle: { text: 'Ready for analysis', progress: 0 },
     preprocessing: { text: 'Preprocessing and validating image...', progress: 15 },
-    analyzing: { text: 'Engaging Vision AI...', progress: 30 },
-    detecting: { text: 'Detecting features and anomalies...', progress: 50 },
-    heatmap: { text: 'Generating annotated image...', progress: 75 },
-    classifying: { text: 'Performing risk and urgency classification...', progress: 90 },
+    analyzingText: { text: 'Performing text-based analysis...', progress: 45 },
+    generatingImage: { text: 'Generating annotated image...', progress: 80 },
     complete: { text: 'Analysis complete!', progress: 100 },
     error: { text: 'An error occurred.', progress: 100 },
 }
 
 
 export default function ScanAnalysisPage() {
-  const [analysis, setAnalysis] = useState<AnalyzeScanForAnomaliesOutput | null>(null);
+  const [textAnalysis, setTextAnalysis] = useState<TextAnalysisOutput | null>(null);
+  const [imageAnalysis, setImageAnalysis] = useState<ImageAnalysisOutput | null>(null);
   const [currentStep, setCurrentStep] = useState<AnalysisStep>('idle');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [scanType, setScanType] = useState<'X-ray' | 'CT' | 'MRI' | ''>('');
@@ -59,12 +58,14 @@ export default function ScanAnalysisPage() {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const analysisResultsRef = React.useRef<HTMLDivElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setAnalysis(null);
+    setTextAnalysis(null);
+    setImageAnalysis(null);
     setCurrentStep('idle');
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -83,62 +84,61 @@ export default function ScanAnalysisPage() {
       return;
     }
 
-    setAnalysis(null);
+    setTextAnalysis(null);
+    setImageAnalysis(null);
     setCurrentStep('preprocessing');
     
     try {
       await new Promise(res => setTimeout(res, 500));
-      setCurrentStep('analyzing');
-      const result = await analyzeScanForAnomaliesAction({
+      setCurrentStep('analyzingText');
+      const textResult = await analyzeScanForAnomaliesAction({
         scanDataUri: previewUrl,
         scanType,
         patientDetails,
       });
-      setCurrentStep('detecting');
-      await new Promise(res => setTimeout(res, 1000));
-      setCurrentStep('heatmap');
-      await new Promise(res => setTimeout(res, 1000));
-      setCurrentStep('classifying');
-      await new Promise(res => setTimeout(res, 500));
+      setTextAnalysis(textResult);
+
+      setCurrentStep('generatingImage');
+      const imageResult = await generateAnalyzedImageAction({
+          scanDataUri: previewUrl,
+          analysis: textResult,
+      });
+      setImageAnalysis(imageResult);
       
-      setAnalysis(result);
       setCurrentStep('complete');
 
       const storage = getStorage();
       
-      // 1. Upload original scan image
       const originalImageRef = ref(storage, `patients/${user.uid}/scan_images/${uuidv4()}_original`);
       const originalImageSnapshot = await uploadString(originalImageRef, previewUrl, 'data_url');
       const originalImageUrl = await getDownloadURL(originalImageSnapshot.ref);
 
-      // 2. Upload analyzed image (with heatmap/markings)
       let analyzedImageUrl = originalImageUrl;
-      if (result.analyzedImageUrl) {
+      if (imageResult.analyzedImageUrl) {
         const analyzedImageRef = ref(storage, `patients/${user.uid}/scan_images/${uuidv4()}_analyzed`);
-        const analyzedImageSnapshot = await uploadString(analyzedImageRef, result.analyzedImageUrl, 'data_url');
+        const analyzedImageSnapshot = await uploadString(analyzedImageRef, imageResult.analyzedImageUrl, 'data_url');
         analyzedImageUrl = await getDownloadURL(analyzedImageSnapshot.ref);
       }
 
-      // 3. Save analysis to Firestore
-        const scanId = uuidv4();
-        const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
-        await addDoc(scanCollectionRef, {
+      const scanId = uuidv4();
+      const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
+      await addDoc(scanCollectionRef, {
             id: scanId,
             patientId: user.uid,
             uploadDate: new Date().toISOString(),
             scanType,
-            imageUrl: originalImageUrl, // The original, un-analyzed image
-            analyzedImageUrl: analyzedImageUrl, // The image with AI markings
+            imageUrl: originalImageUrl,
+            analyzedImageUrl: analyzedImageUrl,
             aiAnalysis: {
-                summary: result.summary,
-                criticalFindings: result.criticalFindings || null,
-                keyFindings: result.keyFindings || null,
-                healthIssues: result.healthIssues || null,
-                recommendedSpecialists: result.recommendedSpecialists || null,
-                recommendedMedications: result.recommendedMedications || null,
-                urgencyClassification: result.urgencyClassification,
+                summary: textResult.summary,
+                criticalFindings: textResult.criticalFindings || null,
+                keyFindings: textResult.keyFindings || null,
+                healthIssues: textResult.healthIssues || null,
+                recommendedSpecialists: textResult.recommendedSpecialists || null,
+                recommendedMedications: textResult.recommendedMedications || null,
+                urgencyClassification: textResult.urgencyClassification,
             }
-        });
+      });
       
       toast({
         title: "Analysis Complete & Saved",
@@ -152,6 +152,36 @@ export default function ScanAnalysisPage() {
         title: "Analysis Failed",
         description: "There was an error analyzing your scan. Please try again.",
       });
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    const input = analysisResultsRef.current;
+    if (!input) return;
+
+    toast({ title: "Generating PDF...", description: "Please wait a moment." });
+
+    try {
+        const canvas = await html2canvas(input, {
+            scale: 2, // Higher scale for better quality
+            useCORS: true,
+            backgroundColor: null,
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const ratio = canvasWidth / canvasHeight;
+        const width = pdfWidth - 20; // with margin
+        const height = width / ratio;
+
+        pdf.addImage(imgData, 'PNG', 10, 10, width, height);
+        pdf.save(`MediQuest_Scan_Analysis_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch(e) {
+        console.error("PDF generation failed", e);
+        toast({ variant: "destructive", title: "PDF Error", description: "Could not generate PDF report." });
     }
   };
   
@@ -248,15 +278,16 @@ export default function ScanAnalysisPage() {
               </Card>
           )}
 
-          {currentStep === 'complete' && analysis ? (
-            <div className='animate-in fade-in-50 duration-500 space-y-6'>
+          {currentStep === 'complete' && textAnalysis && imageAnalysis ? (
+            <div className='animate-in fade-in-50 duration-500 space-y-6' ref={analysisResultsRef}>
               <Card>
                 <CardHeader>
                     <CardTitle>Analysis Results</CardTitle>
                     <CardDescription>Comprehensive breakdown of your medical report.</CardDescription>
                 </CardHeader>
                 <CardFooter>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={handleDownloadPdf}>
+                        <Download className="mr-2 h-4 w-4" />
                         Download PDF Report
                     </Button>
                 </CardFooter>
@@ -272,7 +303,7 @@ export default function ScanAnalysisPage() {
                   <Card>
                       <CardHeader><CardTitle className="text-base">Analyzed Scan</CardTitle></CardHeader>
                       <CardContent>
-                           <Image src={analysis.analyzedImageUrl} alt="Analyzed Scan" width={400} height={300} className="rounded-md object-contain" />
+                           <Image src={imageAnalysis.analyzedImageUrl} alt="Analyzed Scan" width={400} height={300} className="rounded-md object-contain" />
                       </CardContent>
                   </Card>
               </div>
@@ -282,12 +313,12 @@ export default function ScanAnalysisPage() {
                       <CardTitle className="text-xl">Summary</CardTitle>
                   </CardHeader>
                   <CardContent>
-                      <p className="text-muted-foreground">{analysis.summary}</p>
+                      <p className="text-muted-foreground">{textAnalysis.summary}</p>
                   </CardContent>
               </Card>
 
               <Accordion type="multiple" defaultValue={['criticalFindings', 'keyFindings']} className="w-full space-y-4">
-                {analysis.criticalFindings && (
+                {textAnalysis.criticalFindings && (
                     <Card className="bg-destructive/10 border-destructive/30">
                         <AccordionItem value="criticalFindings" className="border-0">
                             <AccordionTrigger className="p-6 text-lg font-semibold text-destructive hover:no-underline">
@@ -296,13 +327,13 @@ export default function ScanAnalysisPage() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6">
-                                <p className="text-destructive/90">{analysis.criticalFindings}</p>
+                                <p className="text-destructive/90">{textAnalysis.criticalFindings}</p>
                             </AccordionContent>
                         </AccordionItem>
                     </Card>
                 )}
 
-                {analysis.keyFindings && (
+                {textAnalysis.keyFindings && (
                      <Card>
                         <AccordionItem value="keyFindings" className="border-0">
                             <AccordionTrigger className="p-6 text-lg font-semibold text-primary hover:no-underline">
@@ -311,13 +342,13 @@ export default function ScanAnalysisPage() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6">
-                                <p className="text-muted-foreground">{analysis.keyFindings}</p>
+                                <p className="text-muted-foreground">{textAnalysis.keyFindings}</p>
                             </AccordionContent>
                         </AccordionItem>
                     </Card>
                 )}
 
-                {analysis.healthIssues && (
+                {textAnalysis.healthIssues && (
                      <Card>
                         <AccordionItem value="healthIssues" className="border-0">
                             <AccordionTrigger className="p-6 text-lg font-semibold text-amber-600 hover:no-underline">
@@ -326,12 +357,12 @@ export default function ScanAnalysisPage() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6">
-                                <p className="text-muted-foreground">{analysis.healthIssues}</p>
+                                <p className="text-muted-foreground">{textAnalysis.healthIssues}</p>
                             </AccordionContent>
                         </AccordionItem>
                     </Card>
                 )}
-                 {analysis.recommendedSpecialists && (
+                 {textAnalysis.recommendedSpecialists && (
                      <Card>
                         <AccordionItem value="recommendedSpecialists" className="border-0">
                             <AccordionTrigger className="p-6 text-lg font-semibold text-violet-600 hover:no-underline">
@@ -340,12 +371,12 @@ export default function ScanAnalysisPage() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6">
-                                <p className="text-muted-foreground">{analysis.recommendedSpecialists}</p>
+                                <p className="text-muted-foreground">{textAnalysis.recommendedSpecialists}</p>
                             </AccordionContent>
                         </AccordionItem>
                     </Card>
                 )}
-                 {analysis.recommendedMedications && (
+                 {textAnalysis.recommendedMedications && (
                      <Card>
                         <AccordionItem value="recommendedMedications" className="border-0">
                             <AccordionTrigger className="p-6 text-lg font-semibold text-green-600 hover:no-underline">
@@ -354,7 +385,7 @@ export default function ScanAnalysisPage() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6">
-                                <p className="text-muted-foreground">{analysis.recommendedMedications}</p>
+                                <p className="text-muted-foreground">{textAnalysis.recommendedMedications}</p>
                             </AccordionContent>
                         </AccordionItem>
                     </Card>

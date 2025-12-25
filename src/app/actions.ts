@@ -1,17 +1,22 @@
 'use server';
 
 import { summarizeMedicalReport, type SummarizeMedicalReportInput } from '@/ai/flows/summarize-medical-report';
-import { analyzeScanForAnomalies, type AnalyzeScanForAnomaliesInput } from '@/ai/flows/analyze-scan-for-anomalies';
-import { generateMedicineDetails, type GenerateMedicineDetailsInput } from '@/ai/flows/generate-medicine-details';
+import { analyzeScanForAnomalies, generateAnalyzedImage, type TextAnalysisInput, type ImageAnalysisInput } from '@/ai/flows/analyze-scan-for-anomalies';
+import { generateMedicineDetails } from '@/ai/flows/generate-medicine-details';
+import type { GenerateMedicineDetailsInput } from '@/ai/schemas';
 
 export async function summarizeMedicalReportAction(input: SummarizeMedicalReportInput) {
     // In a real app, you'd add user authentication/authorization checks here.
     return await summarizeMedicalReport(input);
 }
 
-export async function analyzeScanForAnomaliesAction(input: AnalyzeScanForAnomaliesInput) {
+export async function analyzeScanForAnomaliesAction(input: TextAnalysisInput) {
     // In a real app, you'd add user authentication/authorization checks here.
     return await analyzeScanForAnomalies(input);
+}
+
+export async function generateAnalyzedImageAction(input: ImageAnalysisInput) {
+    return await generateAnalyzedImage(input);
 }
 
 export async function generateMedicineDetailsAction(input: GenerateMedicineDetailsInput) {

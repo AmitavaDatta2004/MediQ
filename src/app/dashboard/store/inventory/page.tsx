@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import type { Medicine } from '@/lib/types';
 import { generateMedicineDetailsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -31,19 +31,22 @@ import { v4 as uuidv4 } from 'uuid';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { differenceInDays } from 'date-fns';
+import type { GenerateMedicineDetailsOutput } from '@/ai/schemas';
 
 const getStatus = (item: Medicine): 'Near Expiry' | 'Out of Stock' | 'Low Stock' | 'In Stock' => {
-    const today = new Date();
-    const expiry = new Date(item.expiryDate);
-    if (differenceInDays(expiry, today) <= 30 && differenceInDays(expiry, today) > 0) {
-        return 'Near Expiry';
+    if (item.expiryDate) {
+        const today = new Date();
+        const expiry = new Date(item.expiryDate);
+        if (differenceInDays(expiry, today) <= 30 && differenceInDays(expiry, today) > 0) {
+            return 'Near Expiry';
+        }
     }
     if (item.stock <= 0) return 'Out of Stock';
     if (item.stock < 20) return 'Low Stock';
     return 'In Stock';
 }
 
-const getStatusVariant = (status: Medicine['status']) => {
+const getStatusVariant = (status: 'Near Expiry' | 'Out of Stock' | 'Low Stock' | 'In Stock') => {
     switch (status) {
         case 'In Stock': return 'default';
         case 'Low Stock': return 'secondary';
@@ -61,7 +64,7 @@ export default function StoreInventoryPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [medicineName, setMedicineName] = useState('');
-  const [generatedDetails, setGeneratedDetails] = useState<Partial<Medicine>>({});
+  const [generatedDetails, setGeneratedDetails] = useState<Partial<GenerateMedicineDetailsOutput>>({});
 
   const inventoryCollectionRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -152,7 +155,7 @@ export default function StoreInventoryPage() {
                             <TableCell className="font-medium">{item.name} ({item.strength})</TableCell>
                             <TableCell>{item.category}</TableCell>
                             <TableCell>{item.stock}</TableCell>
-                            <TableCell>{new Date(item.expiryDate).toLocaleDateString()}</TableCell>
+                            <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : 'N/A'}</TableCell>
                             <TableCell>
                                 <Badge variant={getStatusVariant(status)} className="gap-1">
                                     {status === 'Near Expiry' && <AlertTriangle className="h-3 w-3" />}

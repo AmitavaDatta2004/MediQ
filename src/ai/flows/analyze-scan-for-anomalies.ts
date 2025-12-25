@@ -2,74 +2,89 @@
 /**
  * @fileOverview Analyzes medical images (X-ray, CT, MRI) to highlight potential anomalies.
  *
- * - analyzeScanForAnomalies - A function that analyzes medical images and provides an assessment.
- * - AnalyzeScanForAnomaliesInput - The input type for the analyzeScanForAnomalies function.
- * - AnalyzeScanForAnomaliesOutput - The return type for the analyzeScanForAnomalies function.
+ * - analyzeScanForAnomalies - A function that analyzes medical images and provides a text assessment.
+ * - generateAnalyzedImage - A function that generates an image with anomalies marked.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-
-const AnalyzeScanForAnomaliesInputSchema = z.object({
-  scanDataUri: z
-    .string()
-    .describe(
-      "A medical image (X-ray, CT, MRI) as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-  scanType: z.enum(['X-ray', 'CT', 'MRI']).describe('The type of medical scan.'),
-  patientDetails: z
-    .string()
-    .optional()
-    .describe('Optional details about the patient, such as age and medical history.'),
-});
-export type AnalyzeScanForAnomaliesInput = z.infer<typeof AnalyzeScanForAnomaliesInputSchema>;
-
-const AnalyzeScanForAnomaliesOutputSchema = z.object({
-    summary: z.string().describe("A comprehensive summary of the scan, explaining what the image shows in simple terms. If it's impossible to make a diagnosis from a single image, state that clearly."),
-    criticalFindings: z.string().optional().describe("Any findings that require immediate medical attention. If none, this can be omitted."),
-    keyFindings: z.string().optional().describe("Important, non-critical observations, measurements, or identified structures."),
-    healthIssues: z.string().optional().describe("Identified health concerns or conditions suggested by the scan."),
-    recommendedSpecialists: z.string().optional().describe("Types of medical professionals to consult based on the findings (e.g., Neurologist, Cardiologist)."),
-    recommendedMedications: z.string().optional().describe("AI-suggested medications or treatments based on the findings. This is not medical advice."),
-    analyzedImageUrl: z.string().describe("A data URI of the analyzed image. This image should have any detected anomalies clearly marked with squares or outlines. It should be the same size as the input image."),
-    urgencyClassification: z.enum(['Emergency', 'Urgent', 'Routine', 'Normal']).describe('The urgency classification of the scan based on the anomalies detected.'),
-});
-export type AnalyzeScanForAnomaliesOutput = z.infer<typeof AnalyzeScanForAnomaliesOutputSchema>;
+import { ImageAnalysisInputSchema, ImageAnalysisOutputSchema, TextAnalysisInputSchema, TextAnalysisOutputSchema, type ImageAnalysisInput, type ImageAnalysisOutput, type TextAnalysisInput, type TextAnalysisOutput } from '../schemas';
 
 export async function analyzeScanForAnomalies(
-  input: AnalyzeScanForAnomaliesInput
-): Promise<AnalyzeScanForAnomaliesOutput> {
-  return analyzeScanForAnomaliesFlow(input);
+  input: TextAnalysisInput
+): Promise<TextAnalysisOutput> {
+  return textAnalysisFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'analyzeScanForAnomaliesPrompt',
-  input: {schema: AnalyzeScanForAnomaliesInputSchema},
-  output: {schema: AnalyzeScanForAnomaliesOutputSchema},
-  prompt: `You are an expert AI radiologist. Analyze the provided medical scan ({{{scanType}}}) and return a detailed JSON report.
+export async function generateAnalyzedImage(
+    input: ImageAnalysisInput
+): Promise<ImageAnalysisOutput> {
+    return imageAnalysisFlow(input);
+}
+
+const textAnalysisPrompt = ai.definePrompt({
+  name: 'textAnalysisPrompt',
+  input: {schema: TextAnalysisInputSchema},
+  output: {schema: TextAnalysisOutputSchema},
+  prompt: `You are an expert AI radiologist. Analyze the provided medical scan ({{{scanType}}}) and return a detailed JSON report, but DO NOT generate an image.
 
 **Instructions:**
 1.  **Summarize:** Briefly explain what the scan shows in simple terms.
 2.  **Findings:** Identify critical and key findings. If there are none, omit those fields.
 3.  **Recommendations:** Suggest potential health issues, specialists, and medications based on the scan.
-4.  **Mark Image:** Create a new image data URI (\`analyzedImageUrl\`). Draw boxes or outlines on this image to mark any anomalies found. If no anomalies, return the original image as a data URI.
-5.  **Classify:** Determine the urgency level.
+4.  **Classify:** Determine the urgency level.
 
 **Patient Context:** {{{patientDetails}}}
 
 **Scan Image:** {{media url=scanDataUri}}
 
-Your response MUST be a JSON object conforming to the 'AnalyzeScanForAnomaliesOutputSchema'.`,
+Your response MUST be a JSON object conforming to the 'TextAnalysisOutputSchema'. You must not include the 'analyzedImageUrl' field.`,
 });
 
-const analyzeScanForAnomaliesFlow = ai.defineFlow(
+const textAnalysisFlow = ai.defineFlow(
   {
-    name: 'analyzeScanForAnomaliesFlow',
-    inputSchema: AnalyzeScanForAnomaliesInputSchema,
-    outputSchema: AnalyzeScanForAnomaliesOutputSchema,
+    name: 'textAnalysisFlow',
+    inputSchema: TextAnalysisInputSchema,
+    outputSchema: TextAnalysisOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await textAnalysisPrompt(input);
     return output!;
   }
+);
+
+
+const imageAnalysisPrompt = ai.definePrompt({
+    name: 'imageAnalysisPrompt',
+    input: {schema: ImageAnalysisInputSchema},
+    output: {schema: ImageAnalysisOutputSchema},
+    prompt: `You are an expert AI image processor for medical scans. Your task is to take a medical image and a text-based analysis of its anomalies, and then generate a NEW image that visually marks those anomalies.
+
+**Instructions:**
+1.  **Review Analysis:** Read the provided analysis to understand where the anomalies are located.
+2.  **Mark Image:** Create a new image data URI (\`analyzedImageUrl\`). Draw clear boxes, circles, or outlines on this new image to highlight the specific areas mentioned in the analysis.
+3.  **Maintain Integrity:** The output image must be the same size as the input image. If no anomalies were mentioned in the analysis, you should return the original image as a data URI.
+
+**Analysis Details:**
+\`\`\`json
+{{{json analysis}}}
+\`\`\`
+
+**Original Scan Image:**
+{{media url=scanDataUri}}
+
+Your response MUST be a JSON object conforming to the 'ImageAnalysisOutputSchema'.`,
+});
+
+
+const imageAnalysisFlow = ai.defineFlow(
+    {
+        name: 'imageAnalysisFlow',
+        inputSchema: ImageAnalysisInputSchema,
+        outputSchema: ImageAnalysisOutputSchema,
+    },
+    async input => {
+        const {output} = await imageAnalysisPrompt(input);
+        return output!;
+    }
 );
