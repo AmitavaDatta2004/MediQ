@@ -27,28 +27,24 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
   useLayoutEffect(() => {
     const calculateImagePosition = () => {
       if (imageRef.current && containerRef.current) {
-        const {
-          naturalWidth,
-          naturalHeight,
-        } = imageRef.current;
-        const containerWidth = containerRef.current.offsetWidth;
-        const containerHeight = containerRef.current.offsetHeight;
-
+        const { naturalWidth, naturalHeight } = imageRef.current;
+        const containerRect = containerRef.current.getBoundingClientRect();
+        
         const imageAspectRatio = naturalWidth / naturalHeight;
-        const containerAspectRatio = containerWidth / containerHeight;
+        const containerAspectRatio = containerRect.width / containerRect.height;
         
         let finalWidth, finalHeight, left, top;
         
         if (imageAspectRatio > containerAspectRatio) {
-            finalWidth = containerWidth;
+            finalWidth = containerRect.width;
             finalHeight = finalWidth / imageAspectRatio;
             left = 0;
-            top = (containerHeight - finalHeight) / 2;
+            top = (containerRect.height - finalHeight) / 2;
         } else {
-            finalHeight = containerHeight;
+            finalHeight = containerRect.height;
             finalWidth = finalHeight * imageAspectRatio;
             top = 0;
-            left = (containerWidth - finalWidth) / 2;
+            left = (containerRect.width - finalWidth) / 2;
         }
         
         setImageInfo({
@@ -66,11 +62,24 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
             calculateImagePosition();
         } else {
             img.onload = calculateImagePosition;
+            img.onerror = () => console.error("Image failed to load");
         }
     }
 
-    window.addEventListener('resize', calculateImagePosition);
-    return () => window.removeEventListener('resize', calculateImagePosition);
+    const resizeObserver = new ResizeObserver(calculateImagePosition);
+    if (containerRef.current) {
+        resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+        if (containerRef.current) {
+            resizeObserver.unobserve(containerRef.current);
+        }
+        if (img) {
+            img.onload = null;
+            img.onerror = null;
+        }
+    };
   }, [imageUrl]);
 
   const visualFindings = (findings || []).filter(f => f.box_2d);
@@ -101,8 +110,8 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
         </div>
       </div>
       
-      <div ref={containerRef} className="w-full bg-black/40 rounded-xl border border-gray-800 p-4 flex justify-center items-center min-h-[400px] relative overflow-hidden">
-        <img ref={imageRef} src={imageUrl} alt="Medical Scan Analysis" className="block max-h-full max-w-full h-auto w-auto object-contain rounded-lg" draggable={false} />
+      <div ref={containerRef} className="w-full bg-black/40 rounded-xl border border-gray-800 p-4 flex justify-center items-center min-h-[400px] h-[60vh] relative overflow-hidden">
+        <img ref={imageRef} src={imageUrl} alt="Medical Scan Analysis" className="block max-h-full max-w-full h-auto w-auto object-contain rounded-lg absolute" draggable={false} style={{visibility: imageInfo ? 'visible' : 'hidden'}} />
         
         {imageInfo && (
             <div className="absolute" style={{ top: imageInfo.top, left: imageInfo.left, width: imageInfo.width, height: imageInfo.height }}>
