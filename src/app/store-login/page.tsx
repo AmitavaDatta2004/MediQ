@@ -99,7 +99,7 @@ export default function StoreLoginPage() {
         </div>
       </div>
       <div className="hidden bg-muted lg:flex items-center justify-center flex-col text-center p-8">
-        <Iconslogo className="h-24 w-24 text-primary mb-4" />
+        <Icons.logo className="h-24 w-24 text-primary mb-4" />
         <h2 className="text-4xl font-bold font-headline">MediQuest AI</h2>
         <p className="text-lg text-muted-foreground mt-2 max-w-md">Streamlining prescription fulfillment and inventory management.</p>
       </div>
