@@ -186,7 +186,7 @@ export default function ScanAnalysisPage() {
              <CardDescription>
               AI-detected potential anomalies. Always consult a specialist.
             </CardDescription>
-          </Header>
+          </CardHeader>
           <CardContent className="space-y-4">
             {analysis ? (
               <>
