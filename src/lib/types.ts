@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 export type UserRole = 'patient' | 'doctor' | 'medicine_store';
 
 export type User = {
@@ -146,6 +139,18 @@ export type MedicalReport = {
     aiNextSteps: string;
 }
 
+export type MedicalFinding = {
+  label: string;
+  confidence: string;
+  explanation: string;
+  box_2d?: {
+    ymin: number;
+    xmin: number;
+    ymax: number;
+    xmax: number;
+  };
+};
+
 export type ScanImage = {
   id: string;
   patientId: string;
@@ -155,16 +160,13 @@ export type ScanImage = {
   analyzedImageUrl?: string;
   aiAnalysis: {
     summary: string;
+    findings?: MedicalFinding[];
     criticalFindings?: string;
     keyFindings?: string;
     healthIssues?: string;
     recommendedSpecialists?: string;
     recommendedMedications?: string;
     urgencyClassification: 'Emergency' | 'Urgent' | 'Routine' | 'Normal';
+    disclaimer?: string;
   };
 };
-
-
-
-
-
