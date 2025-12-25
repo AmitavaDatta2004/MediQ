@@ -1,5 +1,4 @@
 
-
 export type UserRole = 'patient' | 'doctor' | 'medicine_store';
 
 export type User = {
@@ -88,6 +87,22 @@ export type MedicineStore = {
   address: string;
   phone: string;
   email: string;
+  ownerName?: string;
+  licenseNumber?: string;
+  licenseDocumentUrl?: string;
+  licenseExpiryDate?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  openingTime?: string;
+  closingTime?: string;
+  workingDays?: string[];
+  homeDelivery?: boolean;
+  services?: {
+    prescription?: boolean;
+    otc?: boolean;
+    generic?: boolean;
+  }
 };
 
 export type MedicalReport = {

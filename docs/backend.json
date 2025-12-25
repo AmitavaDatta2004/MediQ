@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -179,6 +180,58 @@
           "type": "string",
           "description": "Medicine store's email address.",
           "format": "email"
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "Full name of the pharmacy owner."
+        },
+        "licenseNumber": {
+          "type": "string",
+          "description": "Official pharmacy license number."
+        },
+        "licenseDocumentUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the uploaded license document."
+        },
+        "licenseExpiryDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Expiry date of the pharmacy license."
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "pincode": {
+          "type": "string"
+        },
+        "openingTime": {
+          "type": "string",
+          "format": "time"
+        },
+        "closingTime": {
+          "type": "string",
+          "format": "time"
+        },
+        "workingDays": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "homeDelivery": {
+          "type": "boolean"
+        },
+        "services": {
+          "type": "object",
+          "properties": {
+            "prescription": { "type": "boolean" },
+            "otc": { "type": "boolean" },
+            "generic": { "type": "boolean" }
+          }
         }
       },
       "required": [
