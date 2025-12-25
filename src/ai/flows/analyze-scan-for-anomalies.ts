@@ -54,13 +54,13 @@ You will receive a medical image ({{{scanType}}}) and optional patient details.
 1.  **Summarize the Image:** Provide a clear, simple summary of what the scan shows. Explain the type of scan (MRI, CT, etc.) and what part of the body is being viewed. IMPORTANT: State clearly that a single image is not sufficient for a complete diagnosis.
 2.  **Identify Findings:** Carefully examine the image for any abnormalities, points of interest, or significant markers.
 3.  **Structure the Output:** Populate the JSON output with your findings.
-    *   `summary`: Your detailed overview.
-    *   `criticalFindings`: Note anything that looks like an emergency.
-    *   `keyFindings`: Note any other important observations.
-    *   `healthIssues`: List potential conditions suggested by the findings.
-    *   `recommendedSpecialists`: Suggest the type of doctor to see.
-    *   `recommendedMedications`: Suggest potential medications (with a disclaimer).
-    *   `urgencyClassification`: Classify the scan's urgency.
+    *   \`summary\`: Your detailed overview.
+    *   \`criticalFindings\`: Note anything that looks like an emergency.
+    *   \`keyFindings\`: Note any other important observations.
+    *   \`healthIssues\`: List potential conditions suggested by the findings.
+    *   \`recommendedSpecialists\`: Suggest the type of doctor to see.
+    *   \`recommendedMedications\`: Suggest potential medications (with a disclaimer).
+    *   \`urgencyClassification\`: Classify the scan's urgency.
 4.  **Mark the Image:** Create and return a new image as a data URI in the 'analyzedImageUrl' field. This image MUST be the same dimensions as the input. On this image, draw clear boxes or outlines around any areas you refer to in your findings. If there are no specific findings to mark, return the original image.
 
 **Patient Details:** {{{patientDetails}}}
