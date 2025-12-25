@@ -1,108 +1,112 @@
-'use client';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Icons } from '@/components/icons';
-import { useAuth, initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Separator } from '@/components/ui/separator';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-export default function DoctorLoginPage() {
-    const auth = useAuth();
-    const router = useRouter();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+@layer base {
+  :root {
+    --background: 207 89% 94%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 207 82% 67%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 210 40% 9.8%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 120 100% 20%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 207 82% 67%;
+    --chart-1: 207 82% 67%;
+    --chart-2: 120 100% 20%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 207 82% 67%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 207 89% 94%;
+    --sidebar-accent-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 207 82% 67%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 120 100% 25%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 207 82% 67%;
+    --chart-1: 207 82% 67%;
+    --chart-2: 120 100% 25%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 207 82% 67%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
 
-    const handleLogin = () => {
-        if (!email || !password) return;
-        initiateEmailSignIn(auth, email, password);
-        router.push('/dashboard');
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+    .animation-delay-2000 {
+        animation-delay: 2s;
     }
-
-    const handleGoogleSignIn = () => {
-        initiateGoogleSignIn(auth, 'doctor').then(() => {
-            router.push('/dashboard');
-        });
+    .animation-delay-4000 {
+        animation-delay: 4s;
     }
+}
 
-  return (
-    <div className="w-full min-h-screen lg:grid lg:grid-cols-2">
-      <div className="flex items-center justify-center py-12 px-4">
-        <div className="mx-auto grid w-full max-w-md gap-6">
-          <div className="grid gap-2 text-center">
-            <h1 className="text-3xl font-bold font-headline">Doctor Login</h1>
-            <p className="text-balance text-muted-foreground">
-              Enter your credentials to access the doctor portal.
-            </p>
-          </div>
-          <Card>
-            <CardHeader>
-                <CardTitle className="text-2xl">Login</CardTitle>
-                <CardDescription>Use your registered email and password or Google.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="grid gap-4">
-                    <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        placeholder="doctor@mediquest.ai"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                    </div>
-                    <div className="grid gap-2">
-                    <div className="flex items-center">
-                        <Label htmlFor="password">Password</Label>
-                        <Link
-                        href="#"
-                        className="ml-auto inline-block text-sm underline"
-                        >
-                        Forgot your password?
-                        </Link>
-                    </div>
-                    <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-                    </div>
-                    <Button type="submit" className="w-full" onClick={handleLogin}>
-                        Login
-                    </Button>
-                    <div className="relative my-2">
-                        <Separator />
-                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">OR</span>
-                    </div>
-                    <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-                        Sign in with Google
-                    </Button>
-                    <div className="text-center text-sm">
-                        Not a doctor? Login as a{' '}
-                        <Link href="/" className="underline">
-                        Patient
-                        </Link> or a {' '}
-                        <Link href="/store-login" className="underline">
-                        Medicine Store
-                        </Link>
-                    </div>
-                </div>
-            </CardContent>
-          </Card>
-           <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/doctor-signup" className="underline">
-              Sign up
-            </Link>
-          </div>
-        </div>
-      </div>
-      <div className="hidden bg-muted lg:flex items-center justify-center flex-col text-center p-8">
-        <Icons.logo className="h-24 w-24 text-primary mb-4" />
-        <h2 className="text-4xl font-bold font-headline">MediQuest AI</h2>
-        <p className="text-lg text-muted-foreground mt-2 max-w-md">Empowering medical professionals with AI-driven insights.</p>
-      </div>
-    </div>
-  );
+@keyframes blob {
+	0% {
+		transform: translate(0px, 0px) scale(1);
+	}
+	33% {
+		transform: translate(30px, -50px) scale(1.1);
+	}
+	66% {
+		transform: translate(-20px, 20px) scale(0.9);
+	}
+	100% {
+		transform: translate(0px, 0px) scale(1);
+	}
+}
+
+.animate-blob {
+    animation: blob 7s infinite;
 }

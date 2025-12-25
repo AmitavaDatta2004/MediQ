@@ -1,135 +1,174 @@
+
 'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { ArrowRight, Bot, Stethoscope, FileScan, ShieldCheck } from 'lucide-react';
 import { Icons } from '@/components/icons';
-import { useAuth, initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { UserRole } from '@/lib/types';
+import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 
-function LoginForm({ role }: { role: UserRole }) {
-    const auth = useAuth();
-    const router = useRouter();
-    const [email, setEmail] = useState(role === 'patient' ? 'patient@mediquest.ai' : '');
-    const [password, setPassword] = useState(role === 'patient' ? 'password123' : '');
+const features = [
+  {
+    icon: <Bot className="w-8 h-8 text-primary" />,
+    title: 'AI-Powered Analysis',
+    description: 'Upload your medical reports and scans to get simplified summaries, potential issues, and next steps in seconds.',
+  },
+  {
+    icon: <FileScan className="w-8 h-8 text-primary" />,
+    title: 'Health Inventory',
+    description: 'Build a comprehensive, secure, and private digital vault of your entire medical history for smarter insights.',
+  },
+  {
+    icon: <Stethoscope className="w-8 h-8 text-primary" />,
+    title: 'Find a Specialist',
+    description: 'Connect with doctors and grant them secure, time-limited access to your health records for consultations.',
+  },
+    {
+    icon: <ShieldCheck className="w-8 h-8 text-primary" />,
+    title: 'Patient-Controlled Privacy',
+    description: 'You own your data. Share it with practitioners on your terms with granular consent management and full audit logs.',
+    },
+];
 
-    const handleLogin = () => {
-        if (!email || !password) return;
-        initiateEmailSignIn(auth, email, password);
-        router.push('/dashboard');
-    }
-
-    const handleGoogleSignIn = () => {
-        initiateGoogleSignIn(auth, role).then(() => {
-            router.push('/dashboard');
-        });
-    }
-
-    return (
-        <CardContent>
-            <div className="grid gap-4">
-                <div className="grid gap-2">
-                <Label htmlFor={`${role}-email`}>Email</Label>
-                <Input
-                    id={`${role}-email`}
-                    type="email"
-                    placeholder="m@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
-                </div>
-                <div className="grid gap-2">
-                <div className="flex items-center">
-                    <Label htmlFor={`${role}-password`}>Password</Label>
-                    <Link
-                    href="#"
-                    className="ml-auto inline-block text-sm underline"
-                    >
-                    Forgot your password?
-                    </Link>
-                </div>
-                <Input id={`${role}-password`} type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-                </div>
-                <Button type="submit" className="w-full" onClick={handleLogin}>
-                    Login with Email
-                </Button>
-                 <div className="relative my-2">
-                    <Separator />
-                    <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">OR</span>
-                </div>
-                 <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-                    Sign in with Google
-                </Button>
-            </div>
-        </CardContent>
-    )
-}
-
-export default function LoginPage() {
+export default function LandingPage() {
   return (
-    <div className="w-full min-h-screen lg:grid lg:grid-cols-2">
-      <div className="flex items-center justify-center py-12 px-4">
-        <div className="mx-auto grid w-full max-w-md gap-6">
-          <div className="grid gap-2 text-center">
-             <Icons.logo className="h-16 w-16 text-primary mb-4 mx-auto" />
-            <h1 className="text-3xl font-bold font-headline">Welcome to MediQuest AI</h1>
-            <p className="text-balance text-muted-foreground">
-              Select your role to sign in to your account.
+    <div className="flex flex-col min-h-screen bg-background">
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container flex h-14 items-center">
+                <Link href="#" className="flex items-center gap-2 mr-6">
+                    <Icons.logo className="h-6 w-6 text-primary" />
+                    <span className="font-bold font-headline">MediQuest AI</span>
+                </Link>
+                 <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+                    <Link href="#features" className="text-muted-foreground transition-colors hover:text-foreground">Features</Link>
+                    <Link href="#how-it-works" className="text-muted-foreground transition-colors hover:text-foreground">How It Works</Link>
+                    <Link href="#" className="text-muted-foreground transition-colors hover:text-foreground">For Doctors</Link>
+                </nav>
+                <div className="flex flex-1 items-center justify-end gap-4">
+                    <Button variant="ghost" asChild>
+                        <Link href="/login">Log In</Link>
+                    </Button>
+                    <Button asChild>
+                         <Link href="/signup">Sign Up Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    </Button>
+                </div>
+            </div>
+      </header>
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="py-16 md:py-24 lg:py-32">
+          <div className="container text-center">
+            <Badge variant="outline" className="mb-4 text-primary border-primary">Your Personal Health Intelligence Partner</Badge>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline tracking-tight">
+              Understand Your Health, <br/> Empower Your Decisions
+            </h1>
+            <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
+              MediQuest AI transforms your complex medical reports and scans into clear, actionable insights. Take control of your health journey today.
             </p>
+            <div className="mt-8 flex justify-center gap-4">
+              <Button size="lg" asChild>
+                <Link href="/signup">Get Started For Free</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                 <Link href="#features">Explore Features</Link>
+              </Button>
+            </div>
+             <div className="relative mt-12 w-full max-w-4xl mx-auto">
+              <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+              <div className="absolute top-0 -right-4 w-72 h-72 bg-accent/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+              <div className="absolute -bottom-8 left-20 w-72 h-72 bg-secondary/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+              <div className="relative bg-background rounded-xl shadow-2xl p-2 border">
+                 <Image 
+                    src="https://picsum.photos/seed/101/1200/600" 
+                    alt="MediQuest AI Dashboard Preview" 
+                    width={1200}
+                    height={600}
+                    className="rounded-lg"
+                    data-ai-hint="app dashboard health"
+                    priority
+                  />
+              </div>
+            </div>
           </div>
-          <Tabs defaultValue="patient" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="patient">Patient</TabsTrigger>
-                <TabsTrigger value="doctor">Doctor</TabsTrigger>
-                <TabsTrigger value="medicine_store">Pharmacy</TabsTrigger>
-            </TabsList>
-            <TabsContent value="patient">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-2xl">Patient Login</CardTitle>
-                        <CardDescription>Use our demo account, your email, or Google.</CardDescription>
-                    </CardHeader>
-                    <LoginForm role="patient" />
+        </section>
+
+        {/* Features Section */}
+        <section id="features" className="py-16 md:py-24 bg-muted/50">
+          <div className="container">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold font-headline tracking-tight">A Smarter Way to Manage Your Health</h2>
+              <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
+                From analysis to consultation, MediQuest AI provides the tools you need for a complete health overview.
+              </p>
+            </div>
+            <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+              {features.map((feature, index) => (
+                <Card key={index} className="bg-background">
+                  <CardHeader>
+                    {feature.icon}
+                  </CardHeader>
+                  <CardContent>
+                    <CardTitle className="text-lg font-semibold">{feature.title}</CardTitle>
+                    <CardDescription className="mt-2 text-sm">{feature.description}</CardDescription>
+                  </CardContent>
                 </Card>
-            </TabsContent>
-             <TabsContent value="doctor">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-2xl">Doctor Login</CardTitle>
-                        <CardDescription>Enter your credentials to access the doctor portal.</CardDescription>
-                    </CardHeader>
-                    <LoginForm role="doctor" />
-                </Card>
-            </TabsContent>
-             <TabsContent value="medicine_store">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-2xl">Pharmacy Login</CardTitle>
-                        <CardDescription>Access your pharmacy dashboard.</CardDescription>
-                    </CardHeader>
-                    <LoginForm role="medicine_store" />
-                </Card>
-            </TabsContent>
-          </Tabs>
-          <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="underline">
-              Sign up
-            </Link>
+              ))}
+            </div>
           </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section id="how-it-works" className="py-16 md:py-24">
+            <div className="container">
+                <div className="text-center">
+                    <h2 className="text-3xl font-bold font-headline tracking-tight">Get Started in 3 Simple Steps</h2>
+                    <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
+                        Begin your journey to better health understanding in just a few minutes.
+                    </p>
+                </div>
+                <div className="mt-12 grid md:grid-cols-3 gap-8 text-center relative">
+                   {/* Dotted line */}
+                  <div className="hidden md:block absolute top-1/2 left-0 w-full h-px -translate-y-12">
+                      <svg width="100%" height="2" className="overflow-visible">
+                          <line x1="0" y1="1" x2="100%" y2="1" strokeWidth="2" stroke="hsl(var(--border))" strokeDasharray="8, 8"/>
+                      </svg>
+                  </div>
+                    
+                   <div className="relative flex flex-col items-center">
+                       <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-xl border-2 border-primary/20 mb-4 z-10 bg-background">1</div>
+                       <h3 className="font-semibold text-lg">Create Your Account</h3>
+                       <p className="text-muted-foreground mt-2 text-sm">Sign up for free and create your secure patient profile.</p>
+                   </div>
+                    <div className="relative flex flex-col items-center">
+                       <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-xl border-2 border-primary/20 mb-4 z-10 bg-background">2</div>
+                       <h3 className="font-semibold text-lg">Upload Your Documents</h3>
+                       <p className="text-muted-foreground mt-2 text-sm">Add your medical reports, scans, and prescriptions to your Health Inventory.</p>
+                   </div>
+                    <div className="relative flex flex-col items-center">
+                       <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-xl border-2 border-primary/20 mb-4 z-10 bg-background">3</div>
+                       <h3 className="font-semibold text-lg">Receive AI Insights</h3>
+                       <p className="text-muted-foreground mt-2 text-sm">Get instant, easy-to-understand summaries and find the right doctor.</p>
+                   </div>
+                </div>
+            </div>
+        </section>
+
+      </main>
+
+      <footer className="border-t">
+        <div className="container py-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Icons.logo className="h-5 w-5 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">&copy; {new Date().getFullYear()} MediQuest AI. All rights reserved.</p>
+          </div>
+          <nav className="flex gap-4 text-sm font-medium">
+             <Link href="#" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link>
+             <Link href="#" className="text-muted-foreground hover:text-foreground">Terms of Service</Link>
+          </nav>
         </div>
-      </div>
-      <div className="hidden bg-muted lg:flex items-center justify-center flex-col text-center p-8">
-        <Icons.logo className="h-24 w-24 text-primary mb-4" />
-        <h2 className="text-4xl font-bold font-headline">Your Health Intelligence Partner</h2>
-        <p className="text-lg text-muted-foreground mt-2 max-w-md">Advanced analysis for reports and scans, at your fingertips.</p>
-      </div>
+      </footer>
     </div>
   );
 }

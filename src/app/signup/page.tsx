@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Image from 'next/image';
 
 function PatientSignupForm() {
     const auth = useAuth();
@@ -196,7 +198,9 @@ export default function SignupPage() {
           <div className="flex items-center justify-center py-12 px-4">
             <div className="mx-auto grid w-full max-w-md gap-6">
               <div className="grid gap-2 text-center">
-                 <Icons.logo className="h-16 w-16 text-primary mb-4 mx-auto" />
+                 <Link href="/" className="mx-auto">
+                    <Icons.logo className="h-12 w-12 text-primary mb-4 mx-auto" />
+                 </Link>
                 <h1 className="text-3xl font-bold font-headline">Create an Account</h1>
                 <p className="text-balance text-muted-foreground">
                   Choose your role and enter your information to get started.
@@ -238,16 +242,24 @@ export default function SignupPage() {
                 </Tabs>
               <div className="mt-4 text-center text-sm">
                 Already have an account?{' '}
-                <Link href="/" className="underline">
+                <Link href="/login" className="underline">
                   Log in
                 </Link>
               </div>
             </div>
           </div>
-          <div className="hidden bg-muted lg:flex items-center justify-center flex-col text-center p-8">
-            <Icons.logo className="h-24 w-24 text-primary mb-4" />
-            <h2 className="text-4xl font-bold font-headline">Join MediQuest AI Today</h2>
-            <p className="text-lg text-muted-foreground mt-2 max-w-md">Your Personal Health Intelligence Partner. Advanced analysis for reports and scans, at your fingertips.</p>
+          <div className="hidden bg-muted lg:block relative">
+             <Image 
+                src="https://picsum.photos/seed/103/1200/1800"
+                alt="Doctor reviewing medical data"
+                fill
+                className="object-cover"
+                data-ai-hint="doctor health medical"
+            />
+             <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent flex flex-col justify-end p-8 text-white">
+                <h2 className="text-4xl font-bold font-headline">Join MediQuest AI Today</h2>
+                <p className="text-lg mt-2 max-w-md">Your Personal Health Intelligence Partner. Advanced analysis for reports and scans, at your fingertips.</p>
+            </div>
           </div>
         </div>
       );

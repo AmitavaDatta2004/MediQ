@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { Search } from 'lucide-react';
@@ -64,7 +65,7 @@ export function Header({ userRole }: { userRole?: UserRole }) {
 
     const handleLogout = async () => {
       await signOut(auth);
-      router.push('/');
+      router.push('/login');
     }
 
   return (
