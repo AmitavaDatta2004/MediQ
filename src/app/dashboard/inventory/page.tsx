@@ -4,20 +4,20 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { useDoc, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, addDocumentNonBlocking } from '@/firebase';
+import { useDoc, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { Patient, Allergy, ChronicCondition } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, FileScan, HeartPulse } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
+import { Separator } from '@/components/ui/separator';
 
 export default function HealthInventoryPage() {
     const { user } = useUser();
@@ -37,13 +37,13 @@ export default function HealthInventoryPage() {
         if (!user) return null;
         return collection(firestore, `patients/${user.uid}/allergies`);
     }, [firestore, user]);
-    const { data: allergies } = useCollection<Allergy>(allergiesCollectionRef);
+    const { data: allergies, isLoading: isAllergiesLoading } = useCollection<Allergy>(allergiesCollectionRef);
 
     const conditionsCollectionRef = useMemoFirebase(() => {
         if (!user) return null;
         return collection(firestore, `patients/${user.uid}/chronic_conditions`);
     }, [firestore, user]);
-    const { data: chronicConditions } = useCollection<ChronicCondition>(conditionsCollectionRef);
+    const { data: chronicConditions, isLoading: isConditionsLoading } = useCollection<ChronicCondition>(conditionsCollectionRef);
   
     const [patientData, setPatientData] = useState<Partial<Patient>>({});
 
@@ -72,6 +72,12 @@ export default function HealthInventoryPage() {
         }
     }
     
+    const handleRemoveItem = (collectionName: 'allergies' | 'chronic_conditions', id: string) => {
+        if (!user) return;
+        const itemRef = doc(firestore, `patients/${user.uid}/${collectionName}`, id);
+        deleteDocumentNonBlocking(itemRef);
+    }
+    
     const handleAddCondition = () => {
         if (newCondition && conditionsCollectionRef) {
             addDocumentNonBlocking(conditionsCollectionRef, { name: newCondition });
@@ -79,7 +85,9 @@ export default function HealthInventoryPage() {
         }
     }
 
-    if (isPatientLoading) {
+    const isLoading = isPatientLoading || isAllergiesLoading || isConditionsLoading;
+
+    if (isLoading) {
         return <div>Loading your health inventory...</div>
     }
 
@@ -87,86 +95,132 @@ export default function HealthInventoryPage() {
         <div className="space-y-8">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight font-headline">My Health Inventory</h1>
-                <p className="text-muted-foreground">
-                    A centralized repository for your complete medical history. The more you add, the smarter our AI gets.
+                <p className="text-muted-foreground mt-1">
+                    A centralized, optional repository for your complete medical history. The more you add, the smarter our AI gets.
                 </p>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Personal Health Background</CardTitle>
-                    <CardDescription>Establishes baseline risk factors for the AI.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="height">Height (cm)</Label>
-                            <Input id="height" type="number" value={patientData.height || ''} onChange={handleInputChange} />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="weight">Weight (kg)</Label>
-                            <Input id="weight" type="number" value={patientData.weight || ''} onChange={handleInputChange} />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="bloodGroup">Blood Group</Label>
-                            <Input id="bloodGroup" value={patientData.bloodGroup || ''} onChange={handleInputChange} />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                            <Input id="dateOfBirth" type="date" value={patientData.dateOfBirth ? new Date(patientData.dateOfBirth).toISOString().split('T')[0] : ''} onChange={handleInputChange} />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Personal Health Background</CardTitle>
+                            <CardDescription>Establishes baseline risk factors for the AI to contextualize your health data.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="height">Height (cm)</Label>
+                                    <Input id="height" type="number" value={patientData.height || ''} onChange={handleInputChange} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="weight">Weight (kg)</Label>
+                                    <Input id="weight" type="number" value={patientData.weight || ''} onChange={handleInputChange} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="bloodGroup">Blood Group</Label>
+                                    <Input id="bloodGroup" value={patientData.bloodGroup || ''} onChange={handleInputChange} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                                    <Input id="dateOfBirth" type="date" value={patientData.dateOfBirth ? new Date(patientData.dateOfBirth).toISOString().split('T')[0] : ''} onChange={handleInputChange} />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Allergy & Sensitivity Records</CardTitle>
-                    <CardDescription>Prevents dangerous medicine suggestions and improves prescription analysis.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                        {allergies?.map(allergy => (
-                            <Badge variant="secondary" key={allergy.id} className="text-base py-1 pl-3 pr-1">
-                                {allergy.name}
-                                <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
-                                    <X className="h-3 w-3" />
-                                </Button>
-                            </Badge>
-                        ))}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Allergy & Sensitivity Records</CardTitle>
+                            <CardDescription>Prevents dangerous medicine suggestions and improves prescription analysis.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                                {allergies?.map(allergy => (
+                                    <Badge variant="secondary" key={allergy.id} className="text-base py-1 pl-3 pr-1">
+                                        {allergy.name}
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" onClick={() => handleRemoveItem('allergies', allergy.id)}>
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </Badge>
+                                ))}
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                                <Input placeholder="Add a new allergy (e.g., Penicillin)" value={newAllergy} onChange={(e) => setNewAllergy(e.target.value)} />
+                                <Button onClick={handleAddAllergy}><Plus className="mr-2 h-4 w-4" /> Add</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Past & Current Medical Conditions</CardTitle>
+                            <CardDescription>Improves chronic disease risk assessment and helps doctors understand your health history.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="flex flex-wrap gap-2">
+                                {chronicConditions?.map(condition => (
+                                    <Badge variant="secondary" key={condition.id} className="text-base py-1 pl-3 pr-1">
+                                        {condition.name}
+                                         <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" onClick={() => handleRemoveItem('chronic_conditions', condition.id)}>
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </Badge>
+                                ))}
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                                <Input placeholder="Add a new condition (e.g., Hypertension)" value={newCondition} onChange={(e) => setNewCondition(e.target.value)} />
+                                <Button onClick={handleAddCondition}><Plus className="mr-2 h-4 w-4" /> Add</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    
+                    <div className="flex justify-end">
+                        <Button size="lg" onClick={handleSaveChanges}>Save All Changes</Button>
                     </div>
-                    <div className="flex gap-2 mt-4">
-                        <Input placeholder="Add a new allergy (e.g., Penicillin)" value={newAllergy} onChange={(e) => setNewAllergy(e.target.value)} />
-                        <Button onClick={handleAddAllergy}><Plus className="mr-2 h-4 w-4" /> Add</Button>
-                    </div>
-                </CardContent>
-            </Card>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle>Past & Current Medical Conditions</CardTitle>
-                    <CardDescription>Improves chronic disease risk assessment and helps doctors understand your health history.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <div className="flex flex-wrap gap-2">
-                        {chronicConditions?.map(condition => (
-                            <Badge variant="secondary" key={condition.id} className="text-base py-1 pl-3 pr-1">
-                                {condition.name}
-                                 <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
-                                    <X className="h-3 w-3" />
-                                </Button>
-                            </Badge>
-                        ))}
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                        <Input placeholder="Add a new condition (e.g., Hypertension)" value={newCondition} onChange={(e) => setNewCondition(e.target.value)} />
-                        <Button onClick={handleAddCondition}><Plus className="mr-2 h-4 w-4" /> Add</Button>
-                    </div>
-                </CardContent>
-            </Card>
-            
-            <div className="flex justify-end">
-                <Button size="lg" onClick={handleSaveChanges}>Save All Changes</Button>
+                </div>
+                <div className="lg:col-span-1 space-y-6">
+                    <Card className="bg-primary/10 border-primary/20">
+                        <CardHeader className="flex-row items-center gap-4">
+                            <FileScan className="w-8 h-8 text-primary" />
+                            <div>
+                                <CardTitle>Medical Reports</CardTitle>
+                                <CardDescription className="text-foreground/80">Upload blood tests and lab reports.</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <Button asChild className="w-full">
+                                <Link href="/dashboard/report-analysis">Upload & Analyze Report</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-accent/10 border-accent/20">
+                        <CardHeader className="flex-row items-center gap-4">
+                            <HeartPulse className="w-8 h-8 text-accent" />
+                            <div>
+                                <CardTitle>Imaging & Scans</CardTitle>
+                                <CardDescription className="text-foreground/80">Upload X-Rays, CT Scans, and MRIs.</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <Button asChild className="w-full" variant="secondary">
+                                <Link href="/dashboard/scan-analysis">Upload & Analyze Scan</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Coming Soon</CardTitle>
+                            <CardDescription>More inventory features are on the way.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm text-muted-foreground">
+                            <p>• Medication History</p>
+                            <p>• Past Prescriptions Archive</p>
+                            <p>• Family Medical History</p>
+                            <p>• Symptoms & Lifestyle Tracking</p>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     )
