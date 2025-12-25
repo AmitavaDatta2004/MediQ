@@ -10,7 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useDoc, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { doc, collection, addDoc } from 'firebase/firestore';
 import type { Patient, Allergy, ChronicCondition } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { X, Plus, Upload, Loader2 } from 'lucide-react';
@@ -117,7 +117,7 @@ export default function HealthInventoryPage() {
                 // Save analysis and file URL to Firestore
                 const reportId = uuidv4();
                 const reportCollectionRef = collection(firestore, `patients/${user.uid}/medical_reports`);
-                await addDocumentNonBlocking(reportCollectionRef, {
+                await addDoc(reportCollectionRef, {
                     id: reportId,
                     patientId: user.uid,
                     uploadDate: new Date().toISOString(),
@@ -174,7 +174,7 @@ export default function HealthInventoryPage() {
                 // Save analysis and file URL to Firestore
                 const scanId = uuidv4();
                 const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
-                await addDocumentNonBlocking(scanCollectionRef, {
+                await addDoc(scanCollectionRef, {
                     id: scanId,
                     patientId: user.uid,
                     uploadDate: new Date().toISOString(),

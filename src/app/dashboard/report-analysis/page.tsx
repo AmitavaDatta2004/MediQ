@@ -8,8 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { summarizeMedicalReportAction } from '@/app/actions';
 import type { SummarizeMedicalReportOutput } from '@/ai/flows/summarize-medical-report';
 import { Separator } from '@/components/ui/separator';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 
@@ -45,7 +45,7 @@ export default function ReportAnalysisPage() {
         // 2. Save analysis to Firestore
         const reportId = uuidv4();
         const reportCollectionRef = collection(firestore, `patients/${user.uid}/medical_reports`);
-        await addDocumentNonBlocking(reportCollectionRef, {
+        await addDoc(reportCollectionRef, {
             id: reportId,
             patientId: user.uid,
             uploadDate: new Date().toISOString(),
