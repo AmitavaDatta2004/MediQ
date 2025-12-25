@@ -13,9 +13,12 @@ import { useDoc, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking,
 import { doc, collection } from 'firebase/firestore';
 import type { Patient, Allergy, ChronicCondition } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { X, Plus, Upload } from 'lucide-react';
+import { X, Plus, Upload, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+import { v4 as uuidv4 } from 'uuid';
+import { analyzeScanForAnomaliesAction, summarizeMedicalReportAction } from '@/app/actions';
 
 export default function HealthInventoryPage() {
     const { user } = useUser();
@@ -24,6 +27,8 @@ export default function HealthInventoryPage() {
 
     const [newAllergy, setNewAllergy] = useState('');
     const [newCondition, setNewCondition] = useState('');
+    const [isUploadingReport, setIsUploadingReport] = useState(false);
+    const [isUploadingScan, setIsUploadingScan] = useState(false);
 
     const patientDocRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -86,17 +91,121 @@ export default function HealthInventoryPage() {
         }
     }
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fileType: string) => {
+    const handleReportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            toast({
-                title: `Uploading ${fileType}...`,
-                description: `This feature is under development.`
-            });
-            // Here you would typically handle the file upload process
-            // e.g., upload to Firebase Storage and save the URL in Firestore.
-        }
-    }
+        if (!file || !user) return;
+
+        setIsUploadingReport(true);
+        toast({
+            title: 'Uploading Report...',
+            description: 'Please wait while we process and analyze your document.'
+        });
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const dataUri = event.target?.result as string;
+            try {
+                // Get AI summary
+                const analysisResult = await summarizeMedicalReportAction({ reportDataUri: dataUri });
+
+                // Upload file to Firebase Storage
+                const storage = getStorage();
+                const storageRef = ref(storage, `patients/${user.uid}/medical_reports_archive/${uuidv4()}_${file.name}`);
+                const snapshot = await uploadString(storageRef, dataUri, 'data_url');
+                const downloadURL = await getDownloadURL(snapshot.ref);
+
+                // Save analysis and file URL to Firestore
+                const reportId = uuidv4();
+                const reportCollectionRef = collection(firestore, `patients/${user.uid}/medical_reports`);
+                await addDocumentNonBlocking(reportCollectionRef, {
+                    id: reportId,
+                    patientId: user.uid,
+                    uploadDate: new Date().toISOString(),
+                    reportType: file.type.startsWith('image') ? 'Image' : 'PDF Document',
+                    fileUrl: downloadURL,
+                    aiSummary: analysisResult.summary,
+                    aiPotentialIssues: analysisResult.potentialIssues,
+                    aiNextSteps: analysisResult.nextSteps,
+                });
+
+                toast({
+                  title: "Report Archived Successfully",
+                  description: "Your report has been analyzed and saved to your health history.",
+                });
+
+            } catch (error) {
+                console.error("Report upload error:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Upload Failed",
+                    description: "There was an error archiving your report. Please try again.",
+                });
+            } finally {
+                setIsUploadingReport(false);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+    
+    const handleScanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+
+        setIsUploadingScan(true);
+        toast({
+            title: 'Uploading Scan...',
+            description: 'Please wait while we analyze your scan.'
+        });
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const dataUri = event.target?.result as string;
+            try {
+                // Defaulting to X-ray for now, could add a select later
+                const scanType = 'X-ray'; 
+                const analysisResult = await analyzeScanForAnomaliesAction({ scanDataUri: dataUri, scanType });
+
+                // Upload scan to Firebase Storage
+                const storage = getStorage();
+                const storageRef = ref(storage, `patients/${user.uid}/scan_images_archive/${uuidv4()}_${file.name}`);
+                const snapshot = await uploadString(storageRef, dataUri, 'data_url');
+                const downloadURL = await getDownloadURL(snapshot.ref);
+
+                // Save analysis and file URL to Firestore
+                const scanId = uuidv4();
+                const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
+                await addDocumentNonBlocking(scanCollectionRef, {
+                    id: scanId,
+                    patientId: user.uid,
+                    uploadDate: new Date().toISOString(),
+                    scanType,
+                    imageUrl: downloadURL,
+                    aiAnalysis: {
+                        anomaliesDetected: analysisResult.anomaliesDetected,
+                        anomalyReport: analysisResult.anomalyReport,
+                        heatmapDataUri: analysisResult.heatmapDataUri,
+                        urgencyClassification: analysisResult.urgencyClassification
+                    }
+                });
+
+                toast({
+                  title: "Scan Archived Successfully",
+                  description: "Your scan has been analyzed and saved to your health history.",
+                });
+
+            } catch (error) {
+                console.error("Scan upload error:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Upload Failed",
+                    description: "There was an error archiving your scan. Please try again.",
+                });
+            } finally {
+                setIsUploadingScan(false);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
 
     const isLoading = isPatientLoading || isAllergiesLoading || isConditionsLoading;
 
@@ -200,9 +309,15 @@ export default function HealthInventoryPage() {
                         </CardHeader>
                         <CardContent>
                             <label htmlFor="report-archive-upload" className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
-                                <Upload className="w-8 h-8 text-muted-foreground" />
-                                <p className="mt-2 text-sm text-muted-foreground">Upload Report</p>
-                                 <Input id="report-archive-upload" type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'report')} accept="image/*,application/pdf" />
+                                {isUploadingReport ? (
+                                    <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+                                ) : (
+                                    <Upload className="w-8 h-8 text-muted-foreground" />
+                                )}
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                    {isUploadingReport ? 'Processing...' : 'Upload Report'}
+                                </p>
+                                 <Input id="report-archive-upload" type="file" className="hidden" onChange={handleReportUpload} accept="image/*,application/pdf" disabled={isUploadingReport} />
                               </label>
                         </CardContent>
                     </Card>
@@ -213,9 +328,15 @@ export default function HealthInventoryPage() {
                         </CardHeader>
                         <CardContent>
                            <label htmlFor="scan-archive-upload" className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
-                                <Upload className="w-8 h-8 text-muted-foreground" />
-                                <p className="mt-2 text-sm text-muted-foreground">Upload Scan</p>
-                                 <Input id="scan-archive-upload" type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'scan')} accept="image/*" />
+                                {isUploadingScan ? (
+                                     <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+                                ) : (
+                                    <Upload className="w-8 h-8 text-muted-foreground" />
+                                )}
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                    {isUploadingScan ? 'Processing...' : 'Upload Scan'}
+                                </p>
+                                 <Input id="scan-archive-upload" type="file" className="hidden" onChange={handleScanUpload} accept="image/*" disabled={isUploadingScan} />
                               </label>
                         </CardContent>
                     </Card>
