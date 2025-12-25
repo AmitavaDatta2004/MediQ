@@ -2,6 +2,7 @@
 
 
 
+
 export type UserRole = 'patient' | 'doctor' | 'medicine_store';
 
 export type User = {
@@ -152,5 +153,6 @@ export type ScanImage = {
     urgencyClassification: 'Emergency' | 'Urgent' | 'Routine' | 'Normal';
   };
 };
+
 
 
