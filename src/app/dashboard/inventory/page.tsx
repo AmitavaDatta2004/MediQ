@@ -13,8 +13,9 @@ import { useDoc, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking,
 import { doc, collection } from 'firebase/firestore';
 import type { Patient, Allergy, ChronicCondition } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { X, Plus, FileScan, HeartPulse, Upload } from 'lucide-react';
+import { X, Plus, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 export default function HealthInventoryPage() {
     const { user } = useUser();
@@ -66,6 +67,7 @@ export default function HealthInventoryPage() {
         if (newAllergy && allergiesCollectionRef) {
             addDocumentNonBlocking(allergiesCollectionRef, { name: newAllergy });
             setNewAllergy('');
+            toast({ title: 'Allergy Added', description: `${newAllergy} has been added to your records.` });
         }
     }
     
@@ -73,20 +75,27 @@ export default function HealthInventoryPage() {
         if (!user) return;
         const itemRef = doc(firestore, `patients/${user.uid}/${collectionName}`, id);
         deleteDocumentNonBlocking(itemRef);
+        toast({ title: 'Item Removed', description: 'The item has been removed from your records.' });
     }
     
     const handleAddCondition = () => {
         if (newCondition && conditionsCollectionRef) {
             addDocumentNonBlocking(conditionsCollectionRef, { name: newCondition });
             setNewCondition('');
+            toast({ title: 'Condition Added', description: `${newCondition} has been added to your records.` });
         }
     }
 
-    const handleFileUpload = (fileType: string) => {
-        toast({
-            title: `Uploading ${fileType}...`,
-            description: "This feature is coming soon!"
-        })
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fileType: string) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            toast({
+                title: `Uploading ${fileType}...`,
+                description: `This feature is under development.`
+            });
+            // Here you would typically handle the file upload process
+            // e.g., upload to Firebase Storage and save the URL in Firestore.
+        }
     }
 
     const isLoading = isPatientLoading || isAllergiesLoading || isConditionsLoading;
@@ -98,7 +107,7 @@ export default function HealthInventoryPage() {
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight font-headline">My Health Inventory</h1>
+                <h1 className="text-3xl font-bold tracking-tight font-headline">Health Inventory</h1>
                 <p className="text-muted-foreground mt-1">
                     A centralized, optional repository for your complete medical history. The more you add, the smarter our AI gets.
                 </p>
@@ -193,7 +202,7 @@ export default function HealthInventoryPage() {
                             <label htmlFor="report-archive-upload" className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
                                 <Upload className="w-8 h-8 text-muted-foreground" />
                                 <p className="mt-2 text-sm text-muted-foreground">Upload Report</p>
-                                 <Input id="report-archive-upload" type="file" className="hidden" onChange={() => handleFileUpload('report')} accept="image/*,application/pdf" />
+                                 <Input id="report-archive-upload" type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'report')} accept="image/*,application/pdf" />
                               </label>
                         </CardContent>
                     </Card>
@@ -206,7 +215,7 @@ export default function HealthInventoryPage() {
                            <label htmlFor="scan-archive-upload" className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
                                 <Upload className="w-8 h-8 text-muted-foreground" />
                                 <p className="mt-2 text-sm text-muted-foreground">Upload Scan</p>
-                                 <Input id="scan-archive-upload" type="file" className="hidden" onChange={() => handleFileUpload('scan')} accept="image/*" />
+                                 <Input id="scan-archive-upload" type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'scan')} accept="image/*" />
                               </label>
                         </CardContent>
                     </Card>

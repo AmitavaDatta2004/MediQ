@@ -71,19 +71,17 @@
           "format": "uri",
           "description": "URL for the patient's profile picture."
         },
-        "allergyIds": {
-          "type": "array",
-          "description": "List of IDs referencing allergies from the master 'allergies' collection.",
-          "items": {
-            "type": "string"
-          }
+        "height": {
+          "type": "number",
+          "description": "Patient's height in centimeters."
         },
-        "chronicConditionIds": {
-          "type": "array",
-          "description": "List of IDs referencing chronic conditions from the master 'chronicConditions' collection.",
-          "items": {
-            "type": "string"
-          }
+        "weight": {
+          "type": "number",
+          "description": "Patient's weight in kilograms."
+        },
+        "bloodGroup": {
+          "type": "string",
+          "description": "Patient's blood group."
         }
       },
       "required": [
@@ -540,40 +538,28 @@
     "Allergy": {
       "title": "Allergy",
       "type": "object",
-      "description": "Represents a master list of possible allergies.",
+      "description": "Represents a specific allergy a patient has.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Allergy entity."
-        },
+        "id": { "type": "string" },
         "name": {
           "type": "string",
           "description": "Name of the allergy (e.g., Peanuts, Penicillin)."
         }
       },
-      "required": [
-        "id",
-        "name"
-      ]
+      "required": ["id", "name"]
     },
     "ChronicCondition": {
       "title": "ChronicCondition",
       "type": "object",
-      "description": "Represents a master list of possible chronic conditions.",
+      "description": "Represents a specific chronic condition a patient has.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ChronicCondition entity."
-        },
+        "id": { "type": "string" },
         "name": {
           "type": "string",
           "description": "Name of the chronic condition (e.g., Hypertension, Diabetes)."
         }
       },
-      "required": [
-        "id",
-        "name"
-      ]
+      "required": ["id", "name"]
     }
   },
   "auth": {
@@ -705,23 +691,23 @@
         }
       },
       {
-        "path": "/allergies/{allergyId}",
+        "path": "/patients/{patientId}/allergies/{allergyId}",
         "definition": {
           "entityName": "Allergy",
           "schema": {
             "$ref": "#/entities/Allergy"
           },
-          "description": "Master list of allergies, publicly readable."
+          "description": "Stores patient-specific allergies."
         }
       },
       {
-        "path": "/chronic_conditions/{conditionId}",
+        "path": "/patients/{patientId}/chronic_conditions/{conditionId}",
         "definition": {
           "entityName": "ChronicCondition",
           "schema": {
             "$ref": "#/entities/ChronicCondition"
           },
-          "description": "Master list of chronic conditions, publicly readable."
+          "description": "Stores patient-specific chronic conditions."
         }
       }
     ]

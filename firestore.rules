@@ -189,6 +189,14 @@ service cloud.firestore {
           allow get: if isOwner(patientId) || (isDoctor() && consentId == request.auth.uid);
           allow list, create, update, delete: if isOwner(patientId);
       }
+      
+      match /allergies/{allergyId} {
+        allow read, write: if isOwner(patientId);
+      }
+      
+      match /chronic_conditions/{conditionId} {
+        allow read, write: if isOwner(patientId);
+      }
     }
     
     // -------------------------------------------------------------------------
@@ -213,19 +221,6 @@ service cloud.firestore {
             allow update: if isOwner(storeId) && isStoreLinkImmutable();
             allow delete: if isOwner(storeId);
         }
-    }
-
-    // -------------------------------------------------------------------------
-    // Master Data Collections (Read-Only)
-    // -------------------------------------------------------------------------
-    match /allergies/{allergyId} {
-        allow get, list: if isSignedIn();
-        allow write: if false;
-    }
-    
-    match /chronic_conditions/{conditionId} {
-        allow get, list: if isSignedIn();
-        allow write: if false;
     }
   }
 }
