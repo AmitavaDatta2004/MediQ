@@ -17,8 +17,8 @@ import Image from 'next/image';
 function LoginForm({ role }: { role: UserRole }) {
     const auth = useAuth();
     const router = useRouter();
-    const [email, setEmail] = useState(role === 'patient' ? 'patient@mediquest.ai' : '');
-    const [password, setPassword] = useState(role === 'patient' ? 'password123' : '');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
 
     const handleLogin = () => {
         if (!email || !password) return;
