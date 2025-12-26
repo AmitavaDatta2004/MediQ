@@ -30,6 +30,11 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
         const { naturalWidth, naturalHeight } = imageRef.current;
         const containerRect = containerRef.current.getBoundingClientRect();
         
+        if (containerRect.width === 0 || containerRect.height === 0 || naturalWidth === 0 || naturalHeight === 0) {
+          setImageInfo(null);
+          return;
+        }
+
         const imageAspectRatio = naturalWidth / naturalHeight;
         const containerAspectRatio = containerRect.width / containerRect.height;
         
@@ -58,6 +63,8 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
     
     const img = imageRef.current;
     if (img) {
+        // Reset image info when URL changes
+        setImageInfo(null);
         if (img.complete) {
             calculateImagePosition();
         } else {
@@ -73,6 +80,7 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
 
     return () => {
         if (containerRef.current) {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             resizeObserver.unobserve(containerRef.current);
         }
         if (img) {
