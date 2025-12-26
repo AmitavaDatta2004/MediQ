@@ -12,14 +12,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useDoc, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, collection, addDoc } from 'firebase/firestore';
-import type { Patient, Allergy, ChronicCondition } from '@/lib/types';
+import type { Patient, Allergy, ChronicCondition, ScanImage, MedicalReport } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { X, Plus, Upload, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
-import { analyzeScanForAnomaliesAction, summarizeMedicalReportAction } from '@/app/actions';
+import { analyzeMedicalDocumentAction, processMedicalImageAction, summarizeMedicalReportAction } from '@/app/actions';
 
 export default function HealthInventoryPage() {
     const { user } = useUser();
@@ -118,7 +118,7 @@ export default function HealthInventoryPage() {
                 // Save analysis and file URL to Firestore
                 const reportId = uuidv4();
                 const reportCollectionRef = collection(firestore, `patients/${user.uid}/medical_reports`);
-                await addDoc(reportCollectionRef, {
+                const reportData: MedicalReport = {
                     id: reportId,
                     patientId: user.uid,
                     uploadDate: new Date().toISOString(),
@@ -127,7 +127,8 @@ export default function HealthInventoryPage() {
                     aiSummary: analysisResult.summary,
                     aiPotentialIssues: analysisResult.potentialIssues,
                     aiNextSteps: analysisResult.nextSteps,
-                });
+                };
+                await addDoc(reportCollectionRef, reportData);
 
                 toast({
                   title: "Report Archived Successfully",
@@ -162,32 +163,42 @@ export default function HealthInventoryPage() {
         reader.onload = async (event) => {
             const dataUri = event.target?.result as string;
             try {
-                // Defaulting to X-ray for now, could add a select later
-                const scanType = 'X-ray'; 
-                const analysisResult = await analyzeScanForAnomaliesAction({ scanDataUri: dataUri, scanType });
-
-                // Upload scan to Firebase Storage
                 const storage = getStorage();
-                const storageRef = ref(storage, `patients/${user.uid}/scan_images_archive/${uuidv4()}_${file.name}`);
-                const snapshot = await uploadString(storageRef, dataUri, 'data_url');
-                const downloadURL = await getDownloadURL(snapshot.ref);
+                
+                // 1. Upload original image and get URL
+                const originalImageRef = ref(storage, `patients/${user.uid}/scan_images/${uuidv4()}_original_${file.name}`);
+                await uploadString(originalImageRef, dataUri, 'data_url');
+                const originalImageUrl = await getDownloadURL(originalImageRef);
 
-                // Save analysis and file URL to Firestore
+                // 2. Denoise and crop image
+                const processedResult = await processMedicalImageAction({ imageUrl: originalImageUrl });
+                
+                // 3. Upload processed image and get URL
+                const processedImageRef = ref(storage, `patients/${user.uid}/scan_images/${uuidv4()}_processed_${file.name}`);
+                await uploadString(processedImageRef, processedResult.analyzedImageUrl, 'data_url');
+                const analyzedImageUrl = await getDownloadURL(processedImageRef);
+
+                // 4. Analyze image for text data
+                const scanType = 'X-ray'; // Could be dynamic in future
+                const textResult = await analyzeMedicalDocumentAction({ 
+                  imageUrl: originalImageUrl, 
+                  scanType,
+                  patientDetails: `Age: ${patient?.dateOfBirth ? new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear() : 'N/A'}`
+                });
+
+                // 5. Save everything to Firestore
                 const scanId = uuidv4();
                 const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
-                await addDoc(scanCollectionRef, {
+                const scanData: ScanImage = {
                     id: scanId,
                     patientId: user.uid,
                     uploadDate: new Date().toISOString(),
                     scanType,
-                    imageUrl: downloadURL,
-                    aiAnalysis: {
-                        anomaliesDetected: analysisResult.anomaliesDetected,
-                        anomalyReport: analysisResult.anomalyReport,
-                        heatmapDataUri: analysisResult.heatmapDataUri ?? null,
-                        urgencyClassification: analysisResult.urgencyClassification
-                    }
-                });
+                    imageUrl: originalImageUrl,
+                    analyzedImageUrl: analyzedImageUrl,
+                    aiAnalysis: textResult
+                };
+                await addDoc(scanCollectionRef, scanData);
 
                 toast({
                   title: "Scan Archived Successfully",
@@ -346,5 +357,3 @@ export default function HealthInventoryPage() {
         </div>
     )
 }
-
-    
