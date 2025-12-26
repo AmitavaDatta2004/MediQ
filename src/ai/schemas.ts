@@ -3,6 +3,8 @@ import {z} from 'genkit';
 
 export const GetFullMedicineDetailsInputSchema = z.object({
   medicineName: z.string().describe('The name of the medicine to look up.'),
+  language: z.string().describe('The language for the output.'),
+  location: z.string().describe('The user\'s location for pharmacy search.'),
 });
 export type GetFullMedicineDetailsInput = z.infer<typeof GetFullMedicineDetailsInputSchema>;
 

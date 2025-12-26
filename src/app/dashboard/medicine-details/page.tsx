@@ -22,7 +22,12 @@ export default function MedicineDetailsPage() {
     setError(null);
     setMedicineData(null);
     try {
-      const data = await getFullMedicineDetailsAction({ medicineName });
+      // Hardcoding language and location for now. These can be made dynamic later.
+      const data = await getFullMedicineDetailsAction({ 
+        medicineName,
+        language: 'en',
+        location: 'San Francisco, CA' 
+      });
       setMedicineData(data);
     } catch (err) {
       setError('Failed to fetch medicine details. Please try again.');
