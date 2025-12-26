@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useCollection, useFirestore, useUser, setDocumentNonBlocking, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useUser, setDocumentNonBlocking, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc, query } from 'firebase/firestore';
 import type { DataConsent, Doctor } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -58,8 +58,6 @@ export default function DoctorsPage() {
     }
 
     const consentId = doctor.id;
-    const consentRef = doc(firestore, `patients/${user.uid}/data_consents`, consentId);
-
     const consentData: DataConsent = {
         id: consentId,
         patientId: user.uid,
@@ -69,7 +67,13 @@ export default function DoctorsPage() {
         consentGiven: true,
     };
 
-    setDocumentNonBlocking(consentRef, consentData, { merge: true });
+    // Write to patient's subcollection
+    const patientConsentRef = doc(firestore, `patients/${user.uid}/data_consents`, consentId);
+    setDocumentNonBlocking(patientConsentRef, consentData, { merge: true });
+
+    // Denormalize: Write to doctor's subcollection for easy querying
+    const doctorConsentRef = doc(firestore, `doctors/${doctor.id}/consented_patients`, user.uid);
+    setDocumentNonBlocking(doctorConsentRef, consentData, { merge: true });
 
     toast({
         title: "Access Granted",
@@ -79,8 +83,15 @@ export default function DoctorsPage() {
 
   const handleRevokeAccess = async (doctor: Doctor) => {
     if (!user) return;
-    const consentRef = doc(firestore, `patients/${user.uid}/data_consents`, doctor.id);
-    updateDocumentNonBlocking(consentRef, { consentGiven: false });
+    
+    // Update in patient's subcollection
+    const patientConsentRef = doc(firestore, `patients/${user.uid}/data_consents`, doctor.id);
+    updateDocumentNonBlocking(patientConsentRef, { consentGiven: false });
+
+    // Denormalize: Delete from doctor's subcollection
+    const doctorConsentRef = doc(firestore, `doctors/${doctor.id}/consented_patients`, user.uid);
+    deleteDocumentNonBlocking(doctorConsentRef);
+
     toast({
       title: 'Access Revoked',
       description: `Access for Dr. ${doctor.lastName} has been revoked.`,

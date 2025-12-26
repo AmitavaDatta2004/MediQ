@@ -209,6 +209,14 @@ service cloud.firestore {
             allow update: if isOwner(doctorId) && isDoctorLinkImmutable();
             allow delete: if isOwner(doctorId);
         }
+
+        match /consented_patients/{patientId} {
+            // Doctors can read the list of patients who consented.
+            allow get, list: if isOwner(doctorId);
+            // Patients create/delete their own consent records here via denormalization.
+            // The patient's ID must match the document ID.
+            allow create, delete: if isPatient() && request.auth.uid == patientId;
+        }
     }
 
     // -------------------------------------------------------------------------

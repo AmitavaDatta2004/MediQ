@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import type { DataConsent, Patient } from '@/lib/types';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
@@ -27,15 +27,12 @@ export default function DoctorPatientsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  // 1. Get all consent documents where the doctorId matches the current user.
+  // 1. Get all consent documents directly from the doctor's subcollection.
   const consentsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    // Query the 'data_consents' collection group to find all consents granted to this doctor.
     return query(
-      collectionGroup(firestore, 'data_consents'),
-      where('doctorId', '==', user.uid),
+      collection(firestore, `doctors/${user.uid}/consented_patients`),
       where('consentGiven', '==', true)
-      // We could also add a filter for the endDate here if needed
     );
   }, [firestore, user]);
 
