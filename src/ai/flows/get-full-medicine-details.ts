@@ -7,11 +7,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import type { MedicineData } from '@/lib/medicine-types';
+import { GetFullMedicineDetailsInputSchema, type GetFullMedicineDetailsInput } from '@/ai/schemas';
 
-export const GetFullMedicineDetailsInputSchema = z.object({
-  medicineName: z.string().describe('The name of the medicine to look up.'),
-});
-export type GetFullMedicineDetailsInput = z.infer<typeof GetFullMedicineDetailsInputSchema>;
 
 // We can't use the full MedicineData type directly as Zod schema because it's complex.
 // We'll define the output schema for the AI and then cast it.

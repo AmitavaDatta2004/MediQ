@@ -1,6 +1,11 @@
 
 import {z} from 'genkit';
 
+export const GetFullMedicineDetailsInputSchema = z.object({
+  medicineName: z.string().describe('The name of the medicine to look up.'),
+});
+export type GetFullMedicineDetailsInput = z.infer<typeof GetFullMedicineDetailsInputSchema>;
+
 export const GenerateMedicineDetailsInputSchema = z.object({
   medicineName: z.string().describe('The name of the medicine to look up.'),
 });
