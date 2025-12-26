@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { predictDiseaseAction } from '@/app/actions';
 import type { DiseasePredictionOutput } from '@/ai/schemas';
 import { useUser } from '@/firebase';
-import { BrainCircuit, Loader2, Sparkles, Heart, Activity, ShieldAlert, UserMd, ArrowRight, Lightbulb } from 'lucide-react';
+import { BrainCircuit, Loader2, Sparkles, Heart, Activity, ShieldAlert, Stethoscope, ArrowRight, Lightbulb } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -134,7 +134,7 @@ export default function DiseasePredictionPage() {
                              </CardHeader>
                              <CardContent className="space-y-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-primary/10 rounded-full text-primary"><UserMd className="w-6 h-6"/></div>
+                                    <div className="p-3 bg-primary/10 rounded-full text-primary"><Stethoscope className="w-6 h-6"/></div>
                                     <span className="text-xl font-semibold">{analysis.doctorSpecialty}</span>
                                 </div>
                                 <Button className="w-full" asChild>
