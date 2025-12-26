@@ -34,6 +34,7 @@ export default function PatientRecordPage() {
     const [prescriptionNotes, setPrescriptionNotes] = useState('');
     
     const [selectedScan, setSelectedScan] = useState<ScanImage | null>(null);
+    const [selectedReport, setSelectedReport] = useState<MedicalReport | null>(null);
     const [scanNotes, setScanNotes] = useState('');
 
     const patientDocRef = useMemoFirebase(() => doc(firestore, 'patients', patientId), [firestore, patientId]);
@@ -113,6 +114,10 @@ export default function PatientRecordPage() {
         setScanNotes(''); // Reset notes when opening
     };
 
+    const handleOpenReportViewer = (report: MedicalReport) => {
+        setSelectedReport(report);
+    };
+
     const handleSaveScanNotes = () => {
         if (!selectedScan) return;
         // In a real app, you would save `scanNotes` to the Firestore document for the scan.
@@ -172,11 +177,9 @@ export default function PatientRecordPage() {
                                         </div>
                                         <div className="flex items-center gap-4">
                                             <p className="text-sm text-muted-foreground max-w-md truncate">{report.aiSummary}</p>
-                                            <Button asChild variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
-                                                <Link href={report.fileUrl} target="_blank" rel="noopener noreferrer">
-                                                    <Download className="mr-2 h-4 w-4" />
-                                                    View Original
-                                                </Link>
+                                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenReportViewer(report);}}>
+                                                <Download className="mr-2 h-4 w-4" />
+                                                View Report
                                             </Button>
                                         </div>
                                     </CollapsibleTrigger>
@@ -363,6 +366,52 @@ export default function PatientRecordPage() {
                  <DialogFooter className="p-6 pt-0 border-t">
                     <Button variant="outline" onClick={() => setSelectedScan(null)}>Close</Button>
                     <Button onClick={handleSaveScanNotes}>Save Notes</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
+        {/* Report Viewer Dialog */}
+        <Dialog open={!!selectedReport} onOpenChange={(open) => !open && setSelectedReport(null)}>
+            <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
+                <DialogHeader className="p-6 pb-0">
+                    <DialogTitle>Report Viewer: {selectedReport?.reportType}</DialogTitle>
+                    <DialogDescription>
+                        Uploaded on {selectedReport ? new Date(selectedReport.uploadDate).toLocaleDateString() : ''} by {patient?.firstName} {patient?.lastName}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 p-6">
+                    {/* Report Content Column */}
+                    <div className="relative bg-muted/50 rounded-lg flex items-center justify-center overflow-hidden border">
+                       {selectedReport && selectedReport.reportType.includes('Image') ? (
+                           <Image src={selectedReport.fileUrl} alt="Medical Report" fill className="object-contain" />
+                       ) : (
+                           <iframe src={selectedReport?.fileUrl} className="w-full h-full" title={selectedReport?.reportType}></iframe>
+                       )}
+                    </div>
+                    {/* Analysis Column */}
+                    <div className="flex flex-col gap-4 overflow-y-auto">
+                        <div>
+                            <h3 className="font-semibold text-lg flex items-center gap-2"><BrainCircuit className="w-5 h-5 text-primary" /> AI Analysis</h3>
+                            <Separator className="my-2"/>
+                            <div className="space-y-4 text-sm">
+                                <div className="space-y-1">
+                                    <h4 className="font-semibold text-slate-800">Summary</h4>
+                                    <p className="text-slate-600">{selectedReport?.aiSummary}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <h4 className="font-semibold text-red-600 flex items-center gap-1"><AlertTriangle className="w-4 h-4"/> Potential Issues</h4>
+                                    <p className="text-slate-600">{selectedReport?.aiPotentialIssues}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <h4 className="font-semibold text-slate-800 flex items-center gap-1"><ArrowRight className="w-4 h-4 text-green-600"/> Next Steps</h4>
+                                    <p className="text-slate-600">{selectedReport?.aiNextSteps}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <DialogFooter className="p-6 pt-0 border-t">
+                    <Button variant="outline" onClick={() => setSelectedReport(null)}>Close</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
