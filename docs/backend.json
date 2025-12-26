@@ -142,6 +142,30 @@
         "reviews": {
           "type": "number",
           "description": "Total number of reviews."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A professional summary of the doctor's background and expertise."
+        },
+        "consultationFee": {
+          "type": "number",
+          "description": "The fee for a single consultation."
+        },
+        "availability": {
+          "type": "array",
+          "description": "Doctor's weekly working hours.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "day": { "type": "string", "enum": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] },
+              "startTime": { "type": "string", "format": "time" },
+              "endTime": { "type": "string", "format": "time" }
+            }
+          }
+        },
+        "patientsPerDay": {
+          "type": "number",
+          "description": "The maximum number of patients the doctor can see in a day."
         }
       },
       "required": [
@@ -401,6 +425,10 @@
         "notes": {
           "type": "string",
           "description": "Consultation notes from the doctor."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["Upcoming", "Completed", "Cancelled", "Pending"]
         }
       },
       "required": [
@@ -408,7 +436,8 @@
         "patientId",
         "doctorId",
         "appointmentDateTime",
-        "reason"
+        "reason",
+        "status"
       ]
     },
     "Prescription": {

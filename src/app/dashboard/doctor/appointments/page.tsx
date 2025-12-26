@@ -17,15 +17,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { useCollection, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { Appointment, Patient } from '@/lib/types';
 import { useMemo } from 'react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DoctorAppointmentsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -49,6 +51,20 @@ export default function DoctorAppointmentsPage() {
   const getPatient = (patientId: string) => {
     return patients?.find(p => p.id === patientId);
   }
+  
+  const handleUpdateStatus = (appointment: Appointment, status: Appointment['status']) => {
+    if (!user) return;
+    const patientAppointmentRef = doc(firestore, `patients/${appointment.patientId}/appointments`, appointment.id);
+    const doctorAppointmentRef = doc(firestore, `doctors/${user.uid}/appointments`, appointment.id);
+    
+    updateDocumentNonBlocking(patientAppointmentRef, { status });
+    updateDocumentNonBlocking(doctorAppointmentRef, { status });
+
+    toast({
+        title: "Appointment Updated",
+        description: `Appointment with ${getPatient(appointment.patientId)?.firstName} marked as ${status}.`
+    });
+  }
 
   const getStatusVariant = (status: Appointment['status']) => {
     switch (status) {
@@ -58,6 +74,8 @@ export default function DoctorAppointmentsPage() {
             return 'secondary';
         case 'Cancelled':
             return 'destructive';
+        case 'Pending':
+            return 'outline';
         default:
             return 'outline';
     }
@@ -84,9 +102,7 @@ export default function DoctorAppointmentsPage() {
               <TableHead className="hidden md:table-cell">Date</TableHead>
               <TableHead className="hidden md:table-cell">Time</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -109,20 +125,34 @@ export default function DoctorAppointmentsPage() {
                   </TableCell>
                   <TableCell>{appointment.reason}</TableCell>
                   <TableCell className="hidden md:table-cell">{new Date(appointment.appointmentDateTime).toLocaleDateString()}</TableCell>
+
                   <TableCell className="hidden md:table-cell">{new Date(appointment.appointmentDateTime).toLocaleTimeString()}</TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(appointment.status)}>
                       {appointment.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm">View Details</Button>
+                  <TableCell className="text-right">
+                    {appointment.status === 'Pending' && (
+                        <div className="flex gap-2 justify-end">
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleUpdateStatus(appointment, 'Upcoming')}>Accept</Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleUpdateStatus(appointment, 'Cancelled')}>Decline</Button>
+                        </div>
+                    )}
+                    {appointment.status === 'Upcoming' && (
+                        <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(appointment, 'Completed')}>Mark as Completed</Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
+        {(!appointments || appointments.length === 0) && (
+            <div className="text-center p-8 text-muted-foreground">
+                No appointments found.
+            </div>
+        )}
       </CardContent>
     </Card>
   );

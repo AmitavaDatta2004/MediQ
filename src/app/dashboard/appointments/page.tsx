@@ -25,8 +25,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useCollection, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 import type { Appointment, Doctor } from '@/lib/types';
 import { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -35,7 +35,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import { setDocumentNonBlocking } from '@/firebase';
 import { PlusCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -68,7 +67,7 @@ export default function AppointmentsPage() {
     }, [firestore, doctorIds])
   );
   
-  const { data: allDoctors } = useCollection<Doctor>(useMemoFirebase(() => collection(firestore, 'doctors'), [firestore]));
+  const { data: allDoctors } = useCollection<Doctor>(useMemoFirebase(() => firestore ? collection(firestore, 'doctors') : null, [firestore]));
 
   const getDoctor = (doctorId: string) => {
     return doctors?.find(d => d.id === doctorId) ?? allDoctors?.find(d => d.id === doctorId);
@@ -82,6 +81,8 @@ export default function AppointmentsPage() {
             return 'secondary';
         case 'Cancelled':
             return 'destructive';
+        case 'Pending':
+            return 'outline';
         default:
             return 'outline';
     }
@@ -99,35 +100,50 @@ export default function AppointmentsPage() {
 
     const appointmentId = uuidv4();
 
-    const appointmentData = {
+    const appointmentData: Appointment = {
         id: appointmentId,
         patientId: user.uid,
         doctorId: selectedDoctorId,
         appointmentDateTime,
         reason: appointmentReason,
         notes: '',
-        status: 'Upcoming' as const,
+        status: 'Pending',
     };
     
     // Create appointment in patient's subcollection
     const patientAppointmentRef = doc(firestore, `patients/${user.uid}/appointments`, appointmentId);
-    await setDocumentNonBlocking(patientAppointmentRef, appointmentData, { merge: false });
+    setDocumentNonBlocking(patientAppointmentRef, appointmentData, { merge: false });
 
     // Denormalize appointment in doctor's subcollection
     const doctorAppointmentRef = doc(firestore, `doctors/${selectedDoctorId}/appointments`, appointmentId);
-    await setDocumentNonBlocking(doctorAppointmentRef, appointmentData, { merge: false });
+    setDocumentNonBlocking(doctorAppointmentRef, appointmentData, { merge: false });
 
     const selectedDoctor = getDoctor(selectedDoctorId);
 
     toast({
-        title: "Appointment Booked!",
-        description: `Your appointment with ${selectedDoctor?.name} has been scheduled.`,
+        title: "Appointment Request Sent!",
+        description: `Your appointment request to ${selectedDoctor?.name} has been sent for confirmation.`,
     });
 
     setIsBooking(false);
     setAppointmentReason('');
     setAppointmentDateTime('');
     setSelectedDoctorId('');
+};
+
+const handleCancelAppointment = (appointment: Appointment) => {
+    if (!user) return;
+    const patientAppointmentRef = doc(firestore, `patients/${user.uid}/appointments`, appointment.id);
+    const doctorAppointmentRef = doc(firestore, `doctors/${appointment.doctorId}/appointments`, appointment.id);
+
+    updateDocumentNonBlocking(patientAppointmentRef, { status: 'Cancelled' });
+    updateDocumentNonBlocking(doctorAppointmentRef, { status: 'Cancelled' });
+
+    toast({
+        title: 'Appointment Cancelled',
+        description: 'Your appointment has been successfully cancelled.',
+        variant: 'destructive',
+    });
 };
 
   if (isLoading) {
@@ -200,7 +216,7 @@ export default function AppointmentsPage() {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem>View Details</DropdownMenuItem>
                         {appointment.status === 'Upcoming' && <DropdownMenuItem>Reschedule</DropdownMenuItem>}
-                        {appointment.status === 'Upcoming' && <DropdownMenuItem className="text-destructive">Cancel</DropdownMenuItem>}
+                        {(appointment.status === 'Upcoming' || appointment.status === 'Pending') && <DropdownMenuItem className="text-destructive" onClick={() => handleCancelAppointment(appointment)}>Cancel</DropdownMenuItem>}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -217,7 +233,7 @@ export default function AppointmentsPage() {
             <DialogHeader>
                 <DialogTitle>Book a New Appointment</DialogTitle>
                 <DialogDescription>
-                    Please provide the details for your appointment.
+                    Select a doctor and provide your details. The request will be sent for confirmation.
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -247,7 +263,7 @@ export default function AppointmentsPage() {
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsBooking(false)}>Cancel</Button>
-                <Button onClick={handleBookAppointment}>Confirm Booking</Button>
+                <Button onClick={handleBookAppointment}>Send Request</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

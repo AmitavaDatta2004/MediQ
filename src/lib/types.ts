@@ -28,6 +28,16 @@ export type Doctor = {
   location: string;
   rating: number;
   reviews: number;
+  
+  // New fields for profile
+  bio?: string;
+  consultationFee?: number;
+  availability?: {
+      day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+      startTime: string; // "HH:MM"
+      endTime: string; // "HH:MM"
+  }[];
+  patientsPerDay?: number;
 };
 
 export type Appointment = {
@@ -37,7 +47,7 @@ export type Appointment = {
   appointmentDateTime: string;
   notes?: string;
   reason?: string;
-  status: 'Upcoming' | 'Completed' | 'Cancelled';
+  status: 'Upcoming' | 'Completed' | 'Cancelled' | 'Pending';
 };
 
 export type PrescribedMedicine = {
@@ -169,4 +179,14 @@ export type ScanImage = {
     urgencyClassification: 'Emergency' | 'Urgent' | 'Routine' | 'Normal';
     disclaimer?: string;
   };
+};
+
+// Type for the full patient record for the doctor view
+export type FullPatientRecord = Patient & {
+    appointments: Appointment[];
+    medicalReports: MedicalReport[];
+    scanImages: ScanImage[];
+    prescriptions: Prescription[];
+    allergies: Allergy[];
+    chronicConditions: ChronicCondition[];
 };

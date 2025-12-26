@@ -2,10 +2,11 @@
 'use client';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { Patient, MedicineStore, User } from '@/lib/types';
+import type { Patient, MedicineStore, User, Doctor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import PatientProfileForm from '@/components/forms/patient-profile-form';
 import MedicineStoreProfileForm from '@/components/forms/medicine-store-profile-form';
+import DoctorProfileForm from '@/components/forms/doctor-profile-form';
 import {
   Card,
   CardContent,
@@ -36,9 +37,15 @@ export default function ProfilePage() {
       return doc(firestore, 'medicine_stores', user.uid);
   }, [firestore, user, userRole]);
   const { data: store, isLoading: isStoreLoading } = useDoc<MedicineStore>(storeDocRef);
+  
+  const doctorDocRef = useMemoFirebase(() => {
+      if (!user || userRole?.role !== 'doctor') return null;
+      return doc(firestore, 'doctors', user.uid);
+  }, [firestore, user, userRole]);
+  const { data: doctor, isLoading: isDoctorLoading } = useDoc<Doctor>(doctorDocRef);
 
 
-  const isLoading = isUserLoading || isRoleLoading || isPatientLoading || isStoreLoading;
+  const isLoading = isUserLoading || isRoleLoading || isPatientLoading || isStoreLoading || isDoctorLoading;
 
   if (isLoading) {
     return (
@@ -76,9 +83,8 @@ export default function ProfilePage() {
       return <MedicineStoreProfileForm store={store} />;
   }
   
-  if (userRole?.role === 'doctor') {
-    // TODO: Build doctor profile form
-    return <div>Doctor Profile Page - Coming Soon</div>
+  if (userRole?.role === 'doctor' && doctor) {
+    return <DoctorProfileForm doctor={doctor} />
   }
 
   return <div>Could not load profile.</div>;
