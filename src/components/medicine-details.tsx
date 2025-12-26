@@ -61,6 +61,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
     }
 
     const addText = (text: string) => {
+      if (typeof text !== 'string') return;
       const lines = pdf.splitTextToSize(text, pageWidth - margin * 2)
       lines.forEach((line: string) => {
         if (yPos > pdf.internal.pageSize.height - margin) {
@@ -72,7 +73,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
       })
     }
 
-    const addList = (items: string[]) => {
+    const addList = (items: unknown) => {
         if (!Array.isArray(items)) return;
       items.forEach((item) => {
         if (yPos > pdf.internal.pageSize.height - margin) {
@@ -86,62 +87,88 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
 
     // Title and Basic Info
     addTitle(`${data.name} (${data.genericName})`)
-    addText(`Manufacturer: ${data.manufacturer?.name}, ${data.manufacturer?.country}`)
+    if (data.manufacturer) {
+        addText(`Manufacturer: ${data.manufacturer.name}, ${data.manufacturer.country}`)
+    }
+    
 
     // Composition
-    addSection("Composition")
-    addText(`Form: ${data.composition?.formulationType}`)
-    addText("Active Ingredients:")
-    addList(data.composition?.activeIngredients)
-    if (data.composition?.inactiveIngredients?.length > 0) {
-      addText("Inactive Ingredients:")
-      addList(data.composition.inactiveIngredients)
+    if (data.composition) {
+        addSection("Composition")
+        addText(`Form: ${data.composition.formulationType}`)
+        addText("Active Ingredients:")
+        addList(data.composition.activeIngredients)
+        if (Array.isArray(data.composition.inactiveIngredients) && data.composition.inactiveIngredients.length > 0) {
+          addText("Inactive Ingredients:")
+          addList(data.composition.inactiveIngredients)
+        }
     }
+
 
     // Function
-    addSection("Function")
-    addText(`Primary Action: ${data.function?.primaryAction}`)
-    addText(`Mechanism: ${data.function?.mechanismOfAction}`)
-    addText(`Class: ${data.function?.therapeuticClass}`)
+    if (data.function) {
+        addSection("Function")
+        addText(`Primary Action: ${data.function.primaryAction}`)
+        addText(`Mechanism: ${data.function.mechanismOfAction}`)
+        addText(`Class: ${data.function.therapeuticClass}`)
+    }
+
 
     // Dosage
-    addSection("Dosage Information")
-    addText(`Adult Dose: ${data.dosage?.standardDose?.adult}`)
-    addText(`Pediatric Dose: ${data.dosage?.standardDose?.pediatric}`)
-    addText(`Elderly Dose: ${data.dosage?.standardDose?.elderly}`)
-    addText(`Maximum Daily Dose: ${data.dosage?.maximumDailyDose}`)
-    addText(`Duration: ${data.dosage?.durationOfTreatment}`)
-    addText(`Timing: ${data.dosage?.timingConsiderations}`)
+    if (data.dosage) {
+        addSection("Dosage Information")
+        if (data.dosage.standardDose) {
+            addText(`Adult Dose: ${data.dosage.standardDose.adult}`)
+            addText(`Pediatric Dose: ${data.dosage.standardDose.pediatric}`)
+            addText(`Elderly Dose: ${data.dosage.standardDose.elderly}`)
+        }
+        addText(`Maximum Daily Dose: ${data.dosage.maximumDailyDose}`)
+        addText(`Duration: ${data.dosage.durationOfTreatment}`)
+        addText(`Timing: ${data.dosage.timingConsiderations}`)
+    }
+
 
     // Side Effects
-    addSection("Side Effects")
-    addText("Common Side Effects:")
-    addList(data.sideEffects?.common)
-    addText("Serious Side Effects:")
-    addList(data.sideEffects?.serious)
+    if (data.sideEffects) {
+        addSection("Side Effects")
+        addText("Common Side Effects:")
+        addList(data.sideEffects.common)
+        addText("Serious Side Effects:")
+        addList(data.sideEffects.serious)
+    }
 
     // Interactions
-    addSection("Interactions")
-    if (data.interactions?.drugInteractions?.length > 0) {
-      addText("Drug Interactions:")
-      addList(data.interactions.drugInteractions)
+    if (data.interactions) {
+        if (Array.isArray(data.interactions.drugInteractions) && data.interactions.drugInteractions.length > 0) {
+          addText("Drug Interactions:")
+          addList(data.interactions.drugInteractions)
+        }
+        if (Array.isArray(data.interactions.foodInteractions) && data.interactions.foodInteractions.length > 0) {
+          addText("Food Interactions:")
+          addList(data.interactions.foodInteractions)
+        }
     }
-    if (data.interactions?.foodInteractions?.length > 0) {
-      addText("Food Interactions:")
-      addList(data.interactions.foodInteractions)
-    }
+
 
     // Storage
-    addSection("Storage and Handling")
-    addText(`Temperature: ${data.storage?.temperature}`)
-    addText(`Conditions: ${data.storage?.specialConditions}`)
-    addText(`Expiry: ${data.storage?.expiryGuidelines}`)
+    if (data.storage) {
+        addSection("Storage and Handling")
+        addText(`Temperature: ${data.storage.temperature}`)
+        addText(`Conditions: ${data.storage.specialConditions}`)
+        addText(`Expiry: ${data.storage.expiryGuidelines}`)
+    }
+
 
     // Price and Rating
-    addSection("Price Information")
-    addText(`Retail Price: ${data.price?.averageRetailPrice}`)
-    addText(`Unit Price: ${data.price?.unitPrice}`)
-    addText(`Rating: ${data.rating}/5 (${data.reviewCount?.toLocaleString()} reviews)`)
+    if (data.price) {
+        addSection("Price Information")
+        addText(`Retail Price: ${data.price.averageRetailPrice}`)
+        addText(`Unit Price: ${data.price.unitPrice}`)
+    }
+    if (data.rating) {
+        addText(`Rating: ${data.rating}/5 (${data.reviewCount?.toLocaleString()} reviews)`)
+    }
+
 
     // Alternatives
     if (Array.isArray(data.substitutes) && data.substitutes.length > 0) {
@@ -155,16 +182,19 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
     }
 
     // Nearby Pharmacies
-    addSection("Nearby Pharmacies")
-    addText(`Location: ${data.nearbyPharmacies?.location}`)
-    if (Array.isArray(data.nearbyPharmacies?.pharmacies)) {
-      data.nearbyPharmacies.pharmacies.forEach((pharmacy, index) => {
-        addText(`${index + 1}. ${pharmacy.name}`)
-        addText(`   Address: ${pharmacy.address}`)
-        addText(`   Contact: ${pharmacy.contact}`)
-        yPos += lineHeight / 2
-      })
+    if (data.nearbyPharmacies) {
+        addSection("Nearby Pharmacies")
+        addText(`Location: ${data.nearbyPharmacies.location}`)
+        if (Array.isArray(data.nearbyPharmacies.pharmacies)) {
+             data.nearbyPharmacies.pharmacies.forEach((pharmacy, index) => {
+                addText(`${index + 1}. ${pharmacy.name}`)
+                addText(`   Address: ${pharmacy.address}`)
+                addText(`   Contact: ${pharmacy.contact}`)
+                yPos += lineHeight / 2
+            })
+        }
     }
+
 
     // Footer
     const today = new Date().toLocaleDateString()
