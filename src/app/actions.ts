@@ -3,8 +3,9 @@
 import { summarizeMedicalReport, type SummarizeMedicalReportInput } from '@/ai/flows/summarize-medical-report';
 import { analyzeMedicalDocumentAction as analyzeMedicalDocumentFlow, processMedicalImageAction as processMedicalImageFlow, type TextAnalysisInput, type ImageAnalysisInput } from '@/ai/flows/analyze-scan-for-anomalies';
 import { generateMedicineDetails } from '@/ai/flows/generate-medicine-details';
-import type { GenerateMedicineDetailsInput } from '@/ai/schemas';
+import type { GenerateMedicineDetailsInput, DiseasePredictionInput } from '@/ai/schemas';
 import { readPrescriptionAndCheckInventory, type ReadPrescriptionInput } from '@/ai/flows/read-prescription-and-check-inventory';
+import { predictDiseaseFromPatientData } from '@/ai/flows/predict-disease';
 
 export async function summarizeMedicalReportAction(input: SummarizeMedicalReportInput) {
     // In a real app, you'd add user authentication/authorization checks here.
@@ -26,4 +27,8 @@ export async function generateMedicineDetailsAction(input: GenerateMedicineDetai
 
 export async function readPrescriptionAndCheckInventoryAction(input: ReadPrescriptionInput) {
     return await readPrescriptionAndCheckInventory(input);
+}
+
+export async function predictDiseaseAction(input: DiseasePredictionInput) {
+    return await predictDiseaseFromPatientData(input);
 }

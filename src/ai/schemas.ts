@@ -37,7 +37,7 @@ export const TextAnalysisInputSchema = z.object({
   imageUrl: z
     .string()
     .describe(
-      "A public URL to a medical image (X-ray, CT, MRI)."
+      "A medical image as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
   scanType: z.enum(['X-ray', 'CT', 'MRI']).describe('The type of medical scan.'),
   patientDetails: z
@@ -95,3 +95,18 @@ export const ReadPrescriptionOutputSchema = z.object({
 });
 export type ReadPrescriptionOutput = z
   .infer<typeof ReadPrescriptionOutputSchema>;
+
+export const DiseasePredictionInputSchema = z.object({
+  patientId: z.string().describe("The ID of the patient to analyze."),
+});
+export type DiseasePredictionInput = z.infer<typeof DiseasePredictionInputSchema>;
+
+export const DiseasePredictionOutputSchema = z.object({
+  healthScore: z.number().describe("A hypothetical 'Health Risk Score' (0-100, where 100 is perfect health, 0 is critical)."),
+  summary: z.string().describe("A concise summary of the patient's current health status."),
+  riskFactors: z.array(z.string()).describe("The top 3 most significant risk factors identified."),
+  recommendations: z.array(z.string()).describe("Three actionable, evidence-based health recommendations."),
+  doctorSpecialty: z.string().describe("The single most appropriate medical specialist type to consult (e.g., 'Cardiologist', 'General Physician')."),
+  urgency: z.enum(['Low', 'Moderate', 'High', 'Emergency']).describe("The estimated urgency level for a consultation."),
+});
+export type DiseasePredictionOutput = z.infer<typeof DiseasePredictionOutputSchema>;

@@ -17,6 +17,7 @@ import {
   Store,
   Notebook,
   ClipboardPlus,
+  BrainCircuit,
 } from 'lucide-react';
 
 import {
@@ -34,6 +35,7 @@ import type { UserRole } from '@/lib/types';
 const patientNavItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/inventory', icon: ClipboardPlus, label: 'Health Inventory'},
+  { href: '/dashboard/disease-prediction', icon: BrainCircuit, label: 'Disease Prediction' },
   { href: '/dashboard/report-analysis', icon: FileScan, label: 'Report Analysis' },
   { href: '/dashboard/scan-analysis', icon: HeartPulse, label: 'Scan Analysis' },
   { href: '/dashboard/doctors', icon: Stethoscope, label: 'Find a Doctor' },
