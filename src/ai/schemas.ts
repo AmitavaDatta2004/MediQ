@@ -98,6 +98,12 @@ export type ReadPrescriptionOutput = z
 
 export const DiseasePredictionInputSchema = z.object({
   patientId: z.string().describe("The ID of the patient to analyze."),
+  symptoms: z.string().optional().describe("A comma-separated list of symptoms reported by the user."),
+  chronicHistory: z.string().optional().describe("User's answer regarding chronic illnesses or family history."),
+  medicationAllergies: z.string().optional().describe("User's answer regarding current medications or known allergies."),
+  recentProcedures: z.string().optional().describe("User's answer regarding recent surgeries or vaccinations."),
+  lifestyle: z.string().optional().describe("User's answer regarding lifestyle factors."),
+  sleep: z.string().optional().describe("User's description of their sleep pattern."),
 });
 export type DiseasePredictionInput = z.infer<typeof DiseasePredictionInputSchema>;
 
@@ -110,3 +116,13 @@ export const DiseasePredictionOutputSchema = z.object({
   urgency: z.enum(['Low', 'Moderate', 'High', 'Emergency']).describe("The estimated urgency level for a consultation."),
 });
 export type DiseasePredictionOutput = z.infer<typeof DiseasePredictionOutputSchema>;
+
+export type Allergy = {
+    id: string;
+    name: string;
+};
+
+export type ChronicCondition = {
+    id: string;
+    name: string;
+};

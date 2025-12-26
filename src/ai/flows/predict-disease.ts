@@ -68,19 +68,28 @@ const prompt = ai.definePrompt({
   input: { schema: DiseasePredictionInputSchema },
   output: { schema: DiseasePredictionOutputSchema },
   tools: [getPatientProfile, getPatientSubCollection],
-  prompt: `You are MediQuest AI, an advanced medical assistant. Your task is to perform a comprehensive health analysis for a patient based on all available data in their record.
+  prompt: `You are MediQuest AI, an advanced medical assistant. Your task is to perform a comprehensive health analysis for a patient based on the data provided and, if necessary, by fetching additional data from their record.
+
+**Data Provided Directly:**
+- Symptoms: {{symptoms}}
+- Chronic Illnesses/Family History: {{chronicHistory}}
+- Current Medications/Allergies: {{medicationAllergies}}
+- Recent Surgeries/Vaccinations: {{recentProcedures}}
+- Lifestyle Factors: {{lifestyle}}
+- Sleep Pattern: {{sleep}}
 
 **CRITICAL INSTRUCTIONS:**
-1.  **Gather All Data**: Use the \`getPatientProfile\` tool to fetch the patient's core information. Then, use the \`getPatientSubCollection\` tool REPEATEDLY for EACH of the following collections to gather a complete health picture: 'medical_reports', 'scan_images', 'appointments', 'prescriptions', 'allergies', 'chronic_conditions'. You MUST query all of them.
-2.  **Synthesize and Analyze**: Once you have all the data, analyze the patient's symptoms, medical history, lab reports, scan findings, medications, and lifestyle data.
-3.  **Perform Core Tasks**: Based on your synthesis, perform the following tasks:
+1.  **Prioritize Provided Data**: Start your analysis using the symptoms and health answers provided above.
+2.  **Gather Additional Data (If Needed)**: If the provided information is insufficient, use the \`getPatientProfile\` and \`getPatientSubCollection\` tools to gather a more complete health picture. You are encouraged to fetch 'medical_reports', 'scan_images', 'prescriptions', 'allergies', and 'chronic_conditions' to cross-reference and enrich your analysis.
+3.  **Synthesize and Analyze**: Analyze all available data—symptoms, medical history, lab reports, scan findings, medications, and lifestyle factors.
+4.  **Perform Core Tasks**: Based on your synthesis, perform the following tasks:
     *   **Health Risk Score**: Calculate a hypothetical 'Health Risk Score' from 0-100, where 100 is perfect health and 0 is critical.
-    *   **Summary**: Write a concise summary of the patient's current health status.
+    *   **Summary**: Write a concise summary of the patient's current health status based on the symptoms.
     *   **Risk Factors**: Identify the top 3 most significant risk factors.
     *   **Recommendations**: Provide 3 actionable, evidence-based health recommendations.
     *   **Specialist**: Recommend the single most appropriate medical specialist type (e.g., "Cardiologist", "Neurologist", "General Physician").
     *   **Urgency Level**: Estimate the urgency for a consultation: 'Low', 'Moderate', 'High', or 'Emergency'.
-4.  **Format Output**: Your final response MUST be ONLY the raw JSON object conforming to the specified output schema. Do not include any other text or markdown.`,
+5.  **Format Output**: Your final response MUST be ONLY the raw JSON object conforming to the specified output schema. Do not include any other text or markdown.`,
 });
 
 export async function predictDiseaseFromPatientData(
