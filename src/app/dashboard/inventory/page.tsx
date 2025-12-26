@@ -13,15 +13,15 @@ import { useDoc, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking,
 import { doc, collection, addDoc, query, orderBy } from 'firebase/firestore';
 import type { Patient, Allergy, ChronicCondition, ScanImage, MedicalReport } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { X, Plus, Upload, Loader2, FileText, Download } from 'lucide-react';
+import { X, Plus, Upload, Loader2, FileText, Download, BrainCircuit, AlertTriangle, ArrowRight, Microscope, Stethoscope, Pill } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { analyzeMedicalDocumentAction, processMedicalImageAction, summarizeMedicalReportAction } from '@/app/actions';
-import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Image from 'next/image';
-import Link from 'next/link';
+import { Separator } from '@/components/ui/separator';
 
 export default function HealthInventoryPage() {
     const { user } = useUser();
@@ -32,6 +32,9 @@ export default function HealthInventoryPage() {
     const [newCondition, setNewCondition] = useState('');
     const [isUploadingReport, setIsUploadingReport] = useState(false);
     const [isUploadingScan, setIsUploadingScan] = useState(false);
+
+    const [selectedScan, setSelectedScan] = useState<ScanImage | null>(null);
+    const [selectedReport, setSelectedReport] = useState<MedicalReport | null>(null);
 
     const patientDocRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -323,80 +326,6 @@ export default function HealthInventoryPage() {
                             </div>
                         </CardContent>
                     </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>My Medical Reports</CardTitle>
-                            <CardDescription>A log of your uploaded and analyzed documents.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Report</TableHead>
-                                        <TableHead>Uploaded On</TableHead>
-                                        <TableHead>Summary</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {medicalReports?.map(report => (
-                                        <TableRow key={report.id}>
-                                            <TableCell className="font-medium flex items-center gap-2">
-                                                <FileText className="h-5 w-5 text-primary" />
-                                                <span>{report.reportType}</span>
-                                            </TableCell>
-                                            <TableCell>{new Date(report.uploadDate).toLocaleDateString()}</TableCell>
-                                            <TableCell className="max-w-xs truncate">{report.aiSummary}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button asChild variant="outline" size="sm">
-                                                    <Link href={report.fileUrl} target="_blank" rel="noopener noreferrer">
-                                                        <Download className="mr-2 h-4 w-4" />
-                                                        View
-                                                    </Link>
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                            {medicalReports?.length === 0 && <p className="text-center text-muted-foreground py-8">No medical reports found.</p>}
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>My Scan Images</CardTitle>
-                            <CardDescription>A gallery of your uploaded and analyzed scans.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {scanImages?.map(scan => (
-                                    <Card key={scan.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-                                        <CardHeader>
-                                            <div className="relative aspect-video w-full rounded-md overflow-hidden">
-                                                <Image src={scan.imageUrl} alt={`Scan from ${new Date(scan.uploadDate).toLocaleDateString()}`} fill className='object-cover' data-ai-hint="medical scan" />
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <CardTitle className="text-lg">{scan.scanType}</CardTitle>
-                                            <CardDescription>Uploaded on {new Date(scan.uploadDate).toLocaleDateString()}</CardDescription>
-                                            <div className="flex items-center justify-between mt-4">
-                                                <span className="text-sm font-medium">Urgency:</span>
-                                                <Badge variant={scan.aiAnalysis.urgencyClassification === 'Emergency' || scan.aiAnalysis.urgencyClassification === 'Urgent' ? 'destructive' : 'secondary'}>{scan.aiAnalysis.urgencyClassification}</Badge>
-                                            </div>
-                                             <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{scan.aiAnalysis.summary}</p>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                             </div>
-                             {scanImages?.length === 0 && <p className="text-center text-muted-foreground py-8">No scan images found.</p>}
-                        </CardContent>
-                    </Card>
-                    
-                    <div className="flex justify-end">
-                        <Button size="lg" onClick={handleSaveChanges}>Save All Changes</Button>
-                    </div>
                 </div>
                 <div className="lg:col-span-1 space-y-6">
                     <Card>
@@ -437,8 +366,177 @@ export default function HealthInventoryPage() {
                               </label>
                         </CardContent>
                     </Card>
+                    <div className="flex justify-end">
+                        <Button size="lg" onClick={handleSaveChanges}>Save All Changes</Button>
+                    </div>
                 </div>
             </div>
+
+            <Separator />
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>My Medical Reports</CardTitle>
+                    <CardDescription>A log of your uploaded and analyzed documents.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {medicalReports?.map(report => (
+                        <Card key={report.id} className="border border-slate-100 rounded-lg hover:bg-slate-50/50 transition-colors p-4 flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <FileText className="h-6 w-6 text-primary" />
+                                <div>
+                                    <div className="font-bold text-slate-800">{report.reportType}</div>
+                                    <div className="text-sm text-muted-foreground">Uploaded on {new Date(report.uploadDate).toLocaleDateString()}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <p className="text-sm text-muted-foreground max-w-md truncate">{report.aiSummary}</p>
+                                <Button variant="outline" size="sm" onClick={() => setSelectedReport(report)}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    View Report
+                                </Button>
+                            </div>
+                        </Card>
+                    ))}
+                    {medicalReports?.length === 0 && <p className="text-center text-muted-foreground py-8">No medical reports found.</p>}
+                </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>My Scan Images</CardTitle>
+                    <CardDescription>A gallery of your uploaded and analyzed scans.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {scanImages?.map(scan => (
+                             <Card key={scan.id} className="flex flex-col cursor-pointer group" onClick={() => setSelectedScan(scan)}>
+                                <CardHeader className="p-0">
+                                    <div className="relative aspect-video w-full rounded-t-lg overflow-hidden">
+                                        <Image src={scan.imageUrl} alt={`Scan from ${new Date(scan.uploadDate).toLocaleDateString()}`} fill className='object-cover group-hover:scale-105 transition-transform duration-300' data-ai-hint="medical scan" />
+                                        <div className="absolute top-2 right-2">
+                                            <Badge variant={scan.aiAnalysis.urgencyClassification === 'Emergency' || scan.aiAnalysis.urgencyClassification === 'Urgent' ? 'destructive' : 'secondary'}>{scan.aiAnalysis.urgencyClassification}</Badge>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-4 flex-grow">
+                                    <CardTitle className="text-base">{scan.scanType}</CardTitle>
+                                    <CardDescription>Uploaded on {new Date(scan.uploadDate).toLocaleDateString()}</CardDescription>
+                                     <p className="text-sm text-muted-foreground mt-2 line-clamp-2 text-ellipsis">{scan.aiAnalysis.summary}</p>
+                                </CardContent>
+                            </Card>
+                        ))}
+                     </div>
+                     {scanImages?.length === 0 && <p className="text-center text-muted-foreground py-8">No scan images found.</p>}
+                </CardContent>
+            </Card>
+
+            {/* Scan Viewer Dialog */}
+            <Dialog open={!!selectedScan} onOpenChange={(open) => !open && setSelectedScan(null)}>
+                <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0">
+                    <DialogHeader className="p-6 border-b bg-slate-50/50">
+                        <DialogTitle className="text-2xl font-bold">{selectedScan?.scanType} Scan Analysis</DialogTitle>
+                        <DialogDescription>
+                            Uploaded: {selectedScan ? new Date(selectedScan.uploadDate).toLocaleDateString() : ''}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-0 flex-1 min-h-0">
+                        {/* Image Column */}
+                        <div className="relative bg-slate-900 flex items-center justify-center overflow-hidden border-r border-slate-200">
+                        {selectedScan && <Image src={selectedScan.imageUrl} alt="Medical Scan" fill className="object-contain" />}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10 pointer-events-none"></div>
+                        </div>
+                        {/* Analysis & Notes Column */}
+                        <div className="flex flex-col gap-4 overflow-y-auto p-6">
+                            <div>
+                                <h3 className="font-semibold text-lg flex items-center gap-2 mb-3"><BrainCircuit className="w-5 h-5 text-primary" /> AI-Powered Analysis</h3>
+                                <div className="space-y-5 text-sm">
+                                    <div className="space-y-1 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                        <h4 className="font-semibold text-slate-800">Summary</h4>
+                                        <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.summary}</p>
+                                    </div>
+                                    {selectedScan?.aiAnalysis.criticalFindings && (<div className="space-y-1 bg-red-50 p-4 rounded-lg border border-red-100">
+                                        <h4 className="font-semibold text-red-700 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Critical Findings</h4>
+                                        <p className="text-red-900 leading-relaxed">{selectedScan?.aiAnalysis.criticalFindings}</p>
+                                    </div>)}
+                                    {selectedScan?.aiAnalysis.keyFindings && (<div className="space-y-1 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                        <h4 className="font-semibold text-blue-700 flex items-center gap-2"><Microscope className="w-4 h-4"/> Key Findings</h4>
+                                        <p className="text-blue-900 leading-relaxed">{selectedScan?.aiAnalysis.keyFindings}</p>
+                                    </div>)}
+                                    {selectedScan?.aiAnalysis.healthIssues && (<div className="space-y-1">
+                                        <h4 className="font-semibold text-slate-800">Potential Health Issues</h4>
+                                        <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.healthIssues}</p>
+                                    </div>)}
+                                    <div className="grid grid-cols-2 gap-4 pt-2">
+                                        {selectedScan?.aiAnalysis.recommendedSpecialists && (<div className="space-y-1">
+                                            <h4 className="font-semibold text-slate-800 flex items-center gap-2"><Stethoscope className="w-4 h-4"/> Specialists</h4>
+                                            <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.recommendedSpecialists}</p>
+                                        </div>)}
+                                        {selectedScan?.aiAnalysis.recommendedMedications && (<div className="space-y-1">
+                                            <h4 className="font-semibold text-slate-800 flex items-center gap-2"><Pill className="w-4 h-4"/> Medications</h4>
+                                            <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.recommendedMedications}</p>
+                                        </div>)}
+                                    </div>
+                                    <div className="flex justify-between items-center bg-slate-100 p-3 rounded-lg mt-2">
+                                        <h4 className="font-semibold text-slate-800">Urgency Classification</h4>
+                                        <Badge variant={selectedScan?.aiAnalysis.urgencyClassification === 'Emergency' ? 'destructive' : 'secondary'}>{selectedScan?.aiAnalysis.urgencyClassification}</Badge>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter className="p-6 border-t bg-slate-50/50">
+                        <Button variant="outline" onClick={() => setSelectedScan(null)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            
+            {/* Report Viewer Dialog */}
+            <Dialog open={!!selectedReport} onOpenChange={(open) => !open && setSelectedReport(null)}>
+                <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0">
+                    <DialogHeader className="p-6 border-b bg-slate-50/50">
+                        <DialogTitle className="text-2xl font-bold">{selectedReport?.reportType} Analysis</DialogTitle>
+                        <DialogDescription>
+                            Uploaded: {selectedReport ? new Date(selectedReport.uploadDate).toLocaleDateString() : ''}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-0 flex-1 min-h-0">
+                        {/* Report Content Column */}
+                        <div className="relative bg-slate-100 flex items-center justify-center overflow-hidden border-r border-slate-200">
+                        {selectedReport && selectedReport.fileUrl.includes('image') ? (
+                            <Image src={selectedReport.fileUrl} alt="Medical Report" fill className="object-contain" />
+                        ) : (
+                            <iframe src={selectedReport?.fileUrl} className="w-full h-full" title={selectedReport?.reportType}></iframe>
+                        )}
+                        </div>
+                        {/* Analysis Column */}
+                        <div className="flex flex-col gap-4 overflow-y-auto p-6">
+                            <div>
+                            <h3 className="font-semibold text-lg flex items-center gap-2 mb-3"><BrainCircuit className="w-5 h-5 text-primary" /> AI-Powered Analysis</h3>
+                                <div className="space-y-5 text-sm">
+                                    <div className="space-y-1 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                        <h4 className="font-semibold text-slate-800">Summary</h4>
+                                        <p className="text-slate-600 leading-relaxed">{selectedReport?.aiSummary}</p>
+                                    </div>
+                                    <div className="space-y-1 bg-red-50 p-4 rounded-lg border border-red-100">
+                                        <h4 className="font-semibold text-red-700 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Potential Issues</h4>
+                                        <p className="text-red-900 leading-relaxed">{selectedReport?.aiPotentialIssues}</p>
+                                    </div>
+                                    <div className="space-y-1 bg-green-50 p-4 rounded-lg border border-green-100">
+                                        <h4 className="font-semibold text-green-700 flex items-center gap-2"><ArrowRight className="w-4 h-4"/> Next Steps</h4>
+                                        <p className="text-green-900 leading-relaxed">{selectedReport?.aiNextSteps}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter className="p-6 border-t bg-slate-50/50">
+                        <Button variant="outline" onClick={() => setSelectedReport(null)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
+
+    
