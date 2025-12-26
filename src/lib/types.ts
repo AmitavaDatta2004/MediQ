@@ -190,3 +190,14 @@ export type FullPatientRecord = Patient & {
     allergies: Allergy[];
     chronicConditions: ChronicCondition[];
 };
+
+export type UploadedFile = {
+  id: string;
+  name: string;
+  type: string;
+  date: string;
+  previewUrl: string;
+  processedUrl?: string;
+  analysisResult?: any;
+  scanId: string;
+};

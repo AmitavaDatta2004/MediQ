@@ -6,20 +6,20 @@ import { v4 as uuidv4 } from 'uuid';
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
 import { analyzeMedicalDocumentAction, processMedicalImageAction } from '@/app/actions';
-import type { ScanImage, UploadedFile } from '@/lib/types';
-import { UploadCloud, Loader2, ScanEye, FileText, Wand2, Download, ShieldCheck, Save } from 'lucide-react';
+import { UploadCloud, Loader2, ScanEye, FileText, Wand2, ArrowRight, Download, AlertTriangle, ShieldCheck, CheckCircle2, Save } from 'lucide-react';
 import { ImageAnnotator } from '@/components/image-annotator';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
-import type { TextAnalysisOutput } from '@/ai/schemas';
+
+// Define a new type for the file state
+interface UploadedFile {
+  id: string;
+  name: string;
+  type: string;
+  date: string;
+  previewUrl: string; // Original base64 data URL
+  processedUrl?: string; // AI-Enhanced base64 data URL
+  analysisResult?: any; // To store the JSON output from AI
+  scanId: string; // UUID for Firestore/Storage
+}
 
 export default function ScanAnalysisPage() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -29,8 +29,6 @@ export default function ScanAnalysisPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const analysisResultsRef = React.useRef<HTMLDivElement>(null);
-
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !user) return;
@@ -58,7 +56,7 @@ export default function ScanAnalysisPage() {
         setProcessingStatus('Uploading to secure storage...');
         const storage = getStorage();
         
-        // This is a temporary upload to a processing location
+        // This is a temporary upload to a processing location to get a public URL
         const tempUploadRef = ref(storage, `patients/${user.uid}/uploads/${newFile.scanId}_original_${file.name}`);
         const uploadSnapshot = await uploadString(tempUploadRef, base64DataUrl, 'data_url');
         const tempOriginalImageUrl = await getDownloadURL(uploadSnapshot.ref);
@@ -113,7 +111,7 @@ export default function ScanAnalysisPage() {
         
         // 3. Save the final record to Firestore
         const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
-        const finalScanData: ScanImage = {
+        const finalScanData = {
               id: file.scanId,
               patientId: user.uid,
               uploadDate: new Date().toISOString(),
@@ -158,7 +156,7 @@ export default function ScanAnalysisPage() {
       ctx.font = 'bold 24px Inter, sans-serif';
 
       const findings = file.analysisResult?.findings || [];
-      findings.forEach((finding, idx) => {
+      findings.forEach((finding: any, idx: number) => {
         if (finding.box_2d) {
            const { ymin, xmin, ymax, xmax } = finding.box_2d;
            const x = xmin * img.width;
@@ -187,12 +185,12 @@ export default function ScanAnalysisPage() {
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
       <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Medical Scan Analysis</h2>
+        <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Medical Reports & Scans</h2>
         <p className="text-gray-500 text-lg">Upload X-rays, MRI scans, or medical documents for instant AI analysis.</p>
       </div>
       
-      <Card className="relative overflow-hidden border-2 border-dashed border-primary/20 bg-white hover:border-primary/40 hover:bg-primary/5 transition-all duration-300 group cursor-pointer shadow-sm hover:shadow-md">
-         <input type="file" id="fileUpload" className="hidden" accept="image/*,.pdf" onChange={handleFileUpload} disabled={isUploading || isSaving} />
+      <div className="relative overflow-hidden rounded-3xl border-2 border-dashed border-primary/20 bg-white hover:border-primary/40 hover:bg-primary/5 transition-all duration-300 group cursor-pointer shadow-sm hover:shadow-md">
+         <input type="file" id="fileUpload" className="hidden" accept="image/*,.pdf" onChange={handleFileUpload} disabled={isUploading} />
          <label htmlFor="fileUpload" className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-12">
             {isUploading ? (
               <div className="flex flex-col items-center py-6">
@@ -219,12 +217,13 @@ export default function ScanAnalysisPage() {
               </div>
             )}
          </label>
-      </Card>
+      </div>
 
       <div className="space-y-10">
          {files.map(file => (
-           <Card key={file.id} className="overflow-hidden shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-gray-200/60">
-              <CardHeader className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 gap-4">
+           <div key={file.id} className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden transition-all hover:shadow-2xl hover:shadow-gray-200/60">
+              
+              <div className="flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 gap-4">
                  <div className="flex items-center gap-5">
                     <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 text-primary">
                       {file.type.includes('image') ? <ScanEye className="w-8 h-8" /> : <FileText className="w-8 h-8" />}
@@ -236,30 +235,31 @@ export default function ScanAnalysisPage() {
                  </div>
                  <div className="flex items-center gap-3">
                     {file.processedUrl && (
-                      <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-100 shadow-sm">
-                        <Wand2 className="w-4 h-4 mr-2" /> AI Enhanced
-                      </Badge>
+                      <span className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold border border-indigo-100 shadow-sm">
+                        <Wand2 className="w-4 h-4" /> AI Enhanced
+                      </span>
                     )}
-                    <Badge variant={file.analysisResult ? 'default' : 'outline'} className={`uppercase tracking-wide shadow-sm ${file.analysisResult ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                    <span className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide border shadow-sm ${file.analysisResult ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                       {file.analysisResult ? 'Analyzed' : 'Pending'}
-                    </Badge>
-                    {file.analysisResult && (
-                        <Button size="sm" onClick={() => handleSaveScan(file)} disabled={isSaving}>
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                             Save to Records
-                        </Button>
+                    </span>
+                     {file.analysisResult && (
+                        <button onClick={() => handleSaveScan(file)} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-full text-sm font-bold transition-all border shadow-lg shadow-primary/20 hover:bg-primary/90">
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                             Save
+                        </button>
                     )}
                  </div>
-              </CardHeader>
+              </div>
 
-              <CardContent className="p-6 md:p-10 space-y-12">
+              <div className="p-6 md:p-10 space-y-12">
                 {file.type.includes('image') && (
                   <div className="space-y-8">
+                    
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-8 items-center">
                       <div className="space-y-3 group">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Input Source</h3>
-                            <Badge variant="outline">Raw</Badge>
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Input Source</span>
+                            <span className="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">Raw</span>
                         </div>
                         <div className="relative aspect-[4/3] bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 shadow-inner">
                           {file.previewUrl ? (
@@ -270,16 +270,16 @@ export default function ScanAnalysisPage() {
 
                       <div className="flex justify-center">
                         <div className="bg-gray-50 p-3 rounded-full border border-gray-200 text-gray-400 rotate-90 md:rotate-0">
-                            <Wand2 className="w-6 h-6 text-primary" />
+                            <ArrowRight className="w-6 h-6" />
                         </div>
                       </div>
 
                       <div className="space-y-3 group">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-bold text-primary uppercase tracking-wider">AI Processed Image</h3>
-                            <Badge variant="secondary" className='bg-primary/10 text-primary'>Denoised & Cropped</Badge>
+                            <span className="text-xs font-bold text-primary uppercase tracking-wider">AI Processing</span>
+                            <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">Denoised & Cropped</span>
                         </div>
-                        <div className="relative aspect-[4/3] bg-gray-900 rounded-2xl overflow-hidden border-2 border-primary/20 shadow-lg ring-4 ring-primary/5">
+                        <div className="relative aspect-[4/3] bg-gray-900 rounded-2xl overflow-hidden border-2 border-primary/10 shadow-lg ring-4 ring-primary/5">
                           {file.processedUrl ? (
                             <img src={file.processedUrl} alt="Processed" className="w-full h-full object-contain" />
                           ) : (
@@ -292,8 +292,6 @@ export default function ScanAnalysisPage() {
                         </div>
                       </div>
                     </div>
-
-                    <Separator />
 
                     <div className="bg-gray-900 rounded-3xl p-1 shadow-2xl overflow-hidden border border-gray-800">
                         <div className="bg-gray-800/50 px-6 py-4 flex items-center justify-between border-b border-gray-700/50">
@@ -315,13 +313,8 @@ export default function ScanAnalysisPage() {
                         </div>
                         
                         <div className="min-h-[500px] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                             {(file.processedUrl || file.previewUrl) ? (
+                             {(file.processedUrl || file.previewUrl) && (
                                     <ImageAnnotator imageUrl={file.processedUrl || file.previewUrl || ''} findings={file.analysisResult?.findings || []} />
-                                ) : (
-                                    <div className="text-gray-500 flex flex-col items-center">
-                                        <Loader2 className="w-8 h-8 animate-spin mb-2" />
-                                        Waiting for analysis data...
-                                    </div>
                                 )}
                         </div>
                     </div>
@@ -333,63 +326,61 @@ export default function ScanAnalysisPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8 border-t border-gray-100">
                         <div className="lg:col-span-1 space-y-6">
                              <div>
-                                <CardTitle className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-primary" /> AI Summary
-                                </CardTitle>
+                                <h6 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-primary" /> Executive Summary
+                                </h6>
                                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-gray-700 leading-relaxed text-sm shadow-inner">
                                     {file.analysisResult.summary}
                                 </div>
                              </div>
                              
-                             <Card className="bg-amber-50 p-4 rounded-xl border-amber-100 text-amber-900 text-xs flex gap-3">
-                                <Wand2 className="w-5 h-5 shrink-0 text-amber-600" />
+                             <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-amber-900 text-xs flex gap-3">
+                                <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600" />
                                 <p className="font-medium">{file.analysisResult.disclaimer || "This is an AI-generated analysis and is not a substitute for professional medical advice."}</p>
-                             </Card>
+                             </div>
                         </div>
 
                         <div className="lg:col-span-2">
-                            <CardTitle className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                <ScanEye className="w-4 h-4 text-primary" /> Detailed Findings
-                            </CardTitle>
+                            <h6 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <ScanEye className="w-4 h-4 text-primary" /> Detailed Anomalies
+                            </h6>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {file.analysisResult.findings && file.analysisResult.findings.length > 0 ? (
-                                    file.analysisResult.findings.map((finding, idx) => (
-                                        <Card key={idx} className="p-5 shadow-sm hover:shadow-md hover:border-primary/30 transition-all group">
-                                            <CardHeader className='p-0 flex-row items-start justify-between mb-3'>
+                                    file.analysisResult.findings.map((finding: any, idx: number) => (
+                                        <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary/20 transition-all group">
+                                            <div className="flex items-start justify-between mb-3">
                                                 <div className="flex items-center gap-3">
                                                     <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
                                                         {idx + 1}
                                                     </span>
                                                     <span className="font-bold text-gray-900 group-hover:text-primary transition-colors">{finding.label}</span>
                                                 </div>
-                                                <Badge variant="outline" className={`text-[10px] font-bold uppercase tracking-wide border ${
+                                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide border ${
                                                     finding.confidence.toLowerCase().includes('high') 
                                                     ? 'bg-red-50 text-red-700 border-red-100' 
                                                     : 'bg-yellow-50 text-yellow-700 border-yellow-100'
                                                 }`}>
                                                     {finding.confidence}
-                                                </Badge>
-                                            </CardHeader>
-                                            <CardContent className="p-0">
+                                                </span>
+                                            </div>
                                             <p className="text-gray-600 text-sm leading-relaxed border-t border-gray-50 pt-3 mt-1">
                                                 {finding.explanation}
                                             </p>
-                                            </CardContent>
-                                        </Card>
+                                        </div>
                                     ))
                                 ) : (
-                                    <Card className="col-span-2 p-8 border-dashed border-gray-300 text-center">
-                                        <ScanEye className="w-10 h-10 text-green-500 mx-auto mb-3 opacity-50" />
+                                    <div className="col-span-2 p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-300 text-center">
+                                        <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto mb-3 opacity-50" />
                                         <p className="text-gray-500 font-medium">No specific anomalies detected in the AI analysis.</p>
-                                    </Card>
+                                    </div>
                                 )}
                             </div>
                         </div>
                      </div>
                 )}
-              </CardContent>
-           </Card>
+              </div>
+           </div>
          ))}
       </div>
     </div>
