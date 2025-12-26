@@ -90,22 +90,4 @@ export function initiateEmailSignUp(authInstance: Auth, email: string, password:
 }
 
 /** Initiate email/password sign-in (non-blocking). */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
-  // CRITICAL: Call signInWithEmailAndPassword directly. Do NOT use 'await signInWithEmailAndPassword(...)'.
-  signInWithEmailAndPassword(authInstance, email, password).catch(err => console.error(err));
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
-}
-
-/** Initiate Google sign-in popup flow (non-blocking). */
-export async function initiateGoogleSignIn(authInstance: Auth, role: Role): Promise<void> {
-  const provider = new GoogleAuthProvider();
-  try {
-    const result = await signInWithPopup(authInstance, provider);
-    await handleGoogleSignUp(result.user, role);
-    // Auth state change is handled by onAuthStateChanged listener.
-  } catch (err) {
-    console.error("Google Sign-In Error:", err);
-    // Optionally re-throw or handle specific errors
-    throw err;
-  }
-}
+export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void
