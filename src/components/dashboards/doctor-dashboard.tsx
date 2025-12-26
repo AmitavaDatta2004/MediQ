@@ -17,6 +17,7 @@ import { collection, doc, query, where } from 'firebase/firestore';
 import type { Patient, Doctor, Appointment, MedicalReport, ScanImage } from '@/lib/types';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 // --- Sub-Components ---
 
@@ -89,7 +90,7 @@ export default function DoctorDashboard() {
     setSelectedRecord(null);
   };
   
-  const handleUpdateAppointmentStatus = (appointmentId: string, patientId: string, status: 'Confirmed' | 'Cancelled' | 'Completed') => {
+  const handleUpdateAppointmentStatus = (appointmentId: string, patientId: string, status: 'Upcoming' | 'Cancelled' | 'Completed') => {
     if (!user) return;
     
     const doctorAppointmentRef = doc(firestore, `doctors/${user.uid}/appointments`, appointmentId);
@@ -120,7 +121,7 @@ export default function DoctorDashboard() {
                         <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to Patient Chart
                     </button>
                     <div className="flex items-center gap-3">
-                         <a href={selectedRecord.fileUrl || selectedRecord.imageUrl} target="_blank" rel="noopener noreferrer">
+                         <a href={isScan ? selectedRecord.imageUrl : selectedRecord.fileUrl} target="_blank" rel="noopener noreferrer">
                             <Button variant="outline" size="sm" className="rounded-xl h-10 gap-2 font-bold text-slate-600"><Download className="w-4 h-4" /> View Original</Button>
                          </a>
                     </div>
@@ -330,7 +331,7 @@ export default function DoctorDashboard() {
                             <td className="px-8 py-6 text-xs font-medium text-slate-600 max-w-xs truncate">{apt.reason}</td>
                             <td className="px-8 py-6">
                               <Badge className={`${
-                                  apt.status === 'Confirmed' ? 'bg-emerald-50 text-emerald-600' :
+                                  apt.status === 'Upcoming' ? 'bg-emerald-50 text-emerald-600' :
                                   apt.status === 'Cancelled' ? 'bg-red-50 text-red-600' :
                                   apt.status === 'Pending' ? 'bg-amber-50 text-amber-600' :
                                   'bg-slate-100 text-slate-600'
@@ -339,11 +340,11 @@ export default function DoctorDashboard() {
                             <td className="px-8 py-6 text-right">
                                 {apt.status === 'Pending' && (
                                     <div className="flex gap-2 justify-end">
-                                        <Button size="sm" className="rounded-lg bg-emerald-500 hover:bg-emerald-600" onClick={() => handleUpdateAppointmentStatus(apt.id, apt.patientId, 'Confirmed')}>Accept</Button>
+                                        <Button size="sm" className="rounded-lg bg-emerald-500 hover:bg-emerald-600" onClick={() => handleUpdateAppointmentStatus(apt.id, apt.patientId, 'Upcoming')}>Accept</Button>
                                         <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleUpdateAppointmentStatus(apt.id, apt.patientId, 'Cancelled')}>Decline</Button>
                                     </div>
                                 )}
-                                {apt.status === 'Confirmed' && (
+                                {apt.status === 'Upcoming' && (
                                     <Button size="sm" variant="secondary" className="rounded-lg" onClick={() => handleUpdateAppointmentStatus(apt.id, apt.patientId, 'Completed')}>Mark as Complete</Button>
                                 )}
                             </td>
