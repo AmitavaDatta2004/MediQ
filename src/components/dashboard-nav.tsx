@@ -19,6 +19,7 @@ import {
   Notebook,
   ClipboardPlus,
   BrainCircuit,
+  BookOpen,
 } from 'lucide-react';
 
 import {
@@ -41,6 +42,7 @@ const patientNavItems = [
   { href: '/dashboard/scan-analysis', icon: HeartPulse, label: 'Scan Analysis' },
   { href: '/dashboard/doctors', icon: Stethoscope, label: 'Find a Doctor' },
   { href: '/dashboard/medicines', icon: Pill, label: 'Medicines' },
+  { href: '/dashboard/medicine-details', icon: BookOpen, label: 'Medicine Details' },
   { href: '/dashboard/appointments', icon: Calendar, label: 'Appointments' },
   { href: '/dashboard/prescriptions', icon: Pill, label: 'Prescriptions' },
   { href: '/dashboard/orders', icon: Truck, label: 'Medicine Orders' },
