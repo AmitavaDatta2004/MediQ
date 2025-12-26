@@ -2,13 +2,13 @@
 import { useState, useMemo } from 'react';
 import { useDoc, useCollection, useUser, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
-import type { MedicalReport, ScanImage, Patient, Prescription } from '@/lib/types';
+import type { MedicalReport, ScanImage, Patient, Prescription, Allergy, ChronicCondition } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Stethoscope, PlusCircle, X, ArrowRight, AlertTriangle, BrainCircuit, Microscope, Pill } from 'lucide-react';
+import { FileText, Download, Stethoscope, PlusCircle, X, ArrowRight, AlertTriangle, BrainCircuit, Microscope, Pill, Heart, Droplets, Ruler, Weight, ShieldAlert } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { useParams } from 'next/navigation';
 import { addDoc } from 'firebase/firestore';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 
 export default function PatientRecordPage() {
     const { user } = useUser();
@@ -52,12 +54,24 @@ export default function PatientRecordPage() {
         if (!patientId) return null;
         return query(collection(firestore, `patients/${patientId}/prescriptions`), orderBy('date', 'desc'));
     }, [firestore, patientId]);
+    
+    const allergiesQuery = useMemoFirebase(() => {
+        if (!patientId) return null;
+        return query(collection(firestore, `patients/${patientId}/allergies`));
+    }, [firestore, patientId]);
+
+    const conditionsQuery = useMemoFirebase(() => {
+        if (!patientId) return null;
+        return query(collection(firestore, `patients/${patientId}/chronic_conditions`));
+    }, [firestore, patientId]);
 
     const { data: medicalReports, isLoading: reportsLoading } = useCollection<MedicalReport>(reportsQuery);
     const { data: scanImages, isLoading: scansLoading } = useCollection<ScanImage>(scansQuery);
     const { data: prescriptions, isLoading: prescriptionsLoading } = useCollection<Prescription>(prescriptionsQuery);
+    const { data: allergies, isLoading: allergiesLoading } = useCollection<Allergy>(allergiesQuery);
+    const { data: chronicConditions, isLoading: conditionsLoading } = useCollection<ChronicCondition>(conditionsQuery);
     
-    const isLoading = reportsLoading || scansLoading || patientLoading || prescriptionsLoading;
+    const isLoading = reportsLoading || scansLoading || patientLoading || prescriptionsLoading || allergiesLoading || conditionsLoading;
 
     const handleAddMedicine = () => {
         setMedicines([...medicines, { name: '', dosage: '', frequency: '' }]);
@@ -154,6 +168,58 @@ export default function PatientRecordPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-8">
+                     <div className="mb-8">
+                        <h3 className="text-lg font-bold text-slate-900 mb-4">Patient Vitals & Profile</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                             <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                <div className="p-3 bg-red-100 rounded-lg text-red-600"><Heart className="w-5 h-5"/></div>
+                                <div>
+                                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Blood Group</div>
+                                    <div className="text-lg font-black text-slate-800">{patient?.bloodGroup || 'N/A'}</div>
+                                </div>
+                            </div>
+                             <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                <div className="p-3 bg-blue-100 rounded-lg text-blue-600"><Ruler className="w-5 h-5"/></div>
+                                <div>
+                                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Height</div>
+                                    <div className="text-lg font-black text-slate-800">{patient?.height ? `${patient.height} cm` : 'N/A'}</div>
+                                </div>
+                            </div>
+                             <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                <div className="p-3 bg-green-100 rounded-lg text-green-600"><Weight className="w-5 h-5"/></div>
+                                <div>
+                                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Weight</div>
+                                    <div className="text-lg font-black text-slate-800">{patient?.weight ? `${patient.weight} kg` : 'N/A'}</div>
+                                </div>
+                            </div>
+                        </div>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                            <Card className="shadow-none border-slate-100 bg-slate-50/50">
+                                <CardHeader className="p-4">
+                                    <CardTitle className="text-base flex items-center gap-2 text-slate-800"><ShieldAlert className="w-5 h-5 text-yellow-600" /> Known Allergies</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4 pt-0">
+                                    {allergies && allergies.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {allergies.map(allergy => <Badge key={allergy.id} variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">{allergy.name}</Badge>)}
+                                        </div>
+                                    ) : <p className="text-sm text-muted-foreground">No known allergies recorded.</p>}
+                                </CardContent>
+                            </Card>
+                             <Card className="shadow-none border-slate-100 bg-slate-50/50">
+                                <CardHeader className="p-4">
+                                    <CardTitle className="text-base flex items-center gap-2 text-slate-800"><Heart className="w-5 h-5 text-red-600" /> Chronic Conditions</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4 pt-0">
+                                    {chronicConditions && chronicConditions.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {chronicConditions.map(condition => <Badge key={condition.id} variant="outline" className="bg-red-100 text-red-800 border-red-200">{condition.name}</Badge>)}
+                                        </div>
+                                    ) : <p className="text-sm text-muted-foreground">No chronic conditions recorded.</p>}
+                                </CardContent>
+                            </Card>
+                         </div>
+                    </div>
                      <Tabs defaultValue="reports">
                         <TabsList className="bg-slate-100">
                             <TabsTrigger value="reports">Medical Reports</TabsTrigger>
@@ -164,22 +230,42 @@ export default function PatientRecordPage() {
                         <TabsContent value="reports">
                            <div className="space-y-4">
                             {medicalReports?.map(report => (
-                                <Card key={report.id} className="border border-slate-100 rounded-lg flex justify-between items-center p-4 hover:bg-slate-50/50 transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        <FileText className="h-6 w-6 text-primary" />
-                                        <div>
-                                            <div className="font-bold text-slate-800">{report.reportType}</div>
-                                            <div className="text-sm text-muted-foreground">Uploaded on {new Date(report.uploadDate).toLocaleDateString()}</div>
+                               <Collapsible key={report.id} className="border border-slate-100 rounded-lg hover:bg-slate-50/50 transition-colors">
+                                    <CollapsibleTrigger className="flex justify-between items-center p-4 w-full text-left">
+                                        <div className="flex items-center gap-4">
+                                            <FileText className="h-6 w-6 text-primary" />
+                                            <div>
+                                                <div className="font-bold text-slate-800">{report.reportType}</div>
+                                                <div className="text-sm text-muted-foreground">Uploaded on {new Date(report.uploadDate).toLocaleDateString()}</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <p className="text-sm text-muted-foreground max-w-md truncate">{report.aiSummary}</p>
-                                        <Button variant="outline" size="sm" onClick={() => handleOpenReportViewer(report)}>
-                                            <Download className="mr-2 h-4 w-4" />
-                                            View Report
-                                        </Button>
-                                    </div>
-                                </Card>
+                                        <div className="flex items-center gap-4">
+                                            <p className="text-sm text-muted-foreground max-w-md truncate">{report.aiSummary}</p>
+                                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenReportViewer(report); }}>
+                                                <Download className="mr-2 h-4 w-4" />
+                                                View Original
+                                            </Button>
+                                            <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform [&[data-state=open]]:rotate-180" />
+                                        </div>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <div className="px-4 pb-4 space-y-4">
+                                            <Separator/>
+                                            <div>
+                                                <h4 className="font-semibold text-sm mb-1">AI Summary</h4>
+                                                <p className="text-sm text-muted-foreground">{report.aiSummary}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-sm mb-1 text-destructive">Potential Issues</h4>
+                                                <p className="text-sm text-muted-foreground">{report.aiPotentialIssues}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-sm mb-1 text-green-600">Suggested Next Steps</h4>
+                                                <p className="text-sm text-muted-foreground">{report.aiNextSteps}</p>
+                                            </div>
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
                             ))}
                            </div>
                            {medicalReports?.length === 0 && <p className="text-center text-muted-foreground py-8">No medical reports found.</p>}
@@ -187,22 +273,38 @@ export default function PatientRecordPage() {
                         <TabsContent value="scans">
                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {scanImages?.map(scan => (
-                                    <Card key={scan.id} className="cursor-pointer hover:shadow-lg transition-shadow group" onClick={() => handleOpenScanViewer(scan)}>
-                                        <CardHeader className="p-0">
-                                            <div className="relative aspect-video w-full rounded-t-lg overflow-hidden">
-                                                <Image src={scan.imageUrl} alt={`Scan from ${new Date(scan.uploadDate).toLocaleDateString()}`} fill className='object-cover group-hover:scale-105 transition-transform duration-300' data-ai-hint="medical scan" />
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent className="p-4">
-                                            <CardTitle className="text-base">{scan.scanType}</CardTitle>
-                                            <CardDescription>Uploaded on {new Date(scan.uploadDate).toLocaleDateString()}</CardDescription>
-                                            <div className="flex items-center justify-between mt-3">
-                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Urgency:</span>
-                                                <Badge variant={scan.aiAnalysis.urgencyClassification === 'Emergency' || scan.aiAnalysis.urgencyClassification === 'Urgent' ? 'destructive' : 'secondary'}>{scan.aiAnalysis.urgencyClassification}</Badge>
-                                            </div>
-                                             <p className="text-sm text-muted-foreground mt-2 line-clamp-2 text-ellipsis">{scan.aiAnalysis.summary}</p>
-                                        </CardContent>
-                                    </Card>
+                                     <Collapsible key={scan.id} asChild>
+                                        <Card className="flex flex-col">
+                                            <CardHeader className="p-0">
+                                                <div className="relative aspect-video w-full rounded-t-lg overflow-hidden">
+                                                    <Image src={scan.imageUrl} alt={`Scan from ${new Date(scan.uploadDate).toLocaleDateString()}`} fill className='object-cover group-hover:scale-105 transition-transform duration-300' data-ai-hint="medical scan" />
+                                                    <div className="absolute top-2 right-2">
+                                                        <Badge variant={scan.aiAnalysis.urgencyClassification === 'Emergency' || scan.aiAnalysis.urgencyClassification === 'Urgent' ? 'destructive' : 'secondary'}>{scan.aiAnalysis.urgencyClassification}</Badge>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="p-4 flex-grow">
+                                                <CardTitle className="text-base">{scan.scanType}</CardTitle>
+                                                <CardDescription>Uploaded on {new Date(scan.uploadDate).toLocaleDateString()}</CardDescription>
+                                                 <p className="text-sm text-muted-foreground mt-2 line-clamp-2 text-ellipsis">{scan.aiAnalysis.summary}</p>
+                                            </CardContent>
+                                            <CardFooter className="p-4 pt-0 flex justify-between">
+                                                <Button variant="default" size="sm" onClick={() => handleOpenScanViewer(scan)}>View Full Analysis</Button>
+                                                <CollapsibleTrigger asChild>
+                                                    <Button variant="ghost" size="sm">Details <ChevronDown className="ml-1 h-4 w-4 transition-transform [&[data-state=open]]:rotate-180" /></Button>
+                                                </CollapsibleTrigger>
+                                            </CardFooter>
+                                             <CollapsibleContent asChild>
+                                                <div className="p-4 pt-0">
+                                                    <Separator className="mb-4" />
+                                                    <div className="space-y-2 text-xs">
+                                                        {scan.aiAnalysis.criticalFindings && <div><strong className="text-destructive">Critical:</strong> {scan.aiAnalysis.criticalFindings}</div>}
+                                                        {scan.aiAnalysis.keyFindings && <div><strong>Key Findings:</strong> {scan.aiAnalysis.keyFindings}</div>}
+                                                    </div>
+                                                </div>
+                                             </CollapsibleContent>
+                                        </Card>
+                                     </Collapsible>
                                 ))}
                              </div>
                              {scanImages?.length === 0 && <p className="text-center text-muted-foreground py-8">No scan images found.</p>}
@@ -282,34 +384,34 @@ export default function PatientRecordPage() {
          {/* Scan Viewer Dialog */}
         <Dialog open={!!selectedScan} onOpenChange={(open) => !open && setSelectedScan(null)}>
             <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0">
-                <DialogHeader className="p-6 border-b">
-                    <DialogTitle className="text-2xl font-bold">Scan Viewer: {selectedScan?.scanType}</DialogTitle>
+                <DialogHeader className="p-6 border-b bg-slate-50/50">
+                    <DialogTitle className="text-2xl font-bold">{selectedScan?.scanType} Scan Analysis</DialogTitle>
                     <DialogDescription>
-                        Uploaded on {selectedScan ? new Date(selectedScan.uploadDate).toLocaleDateString() : ''} for {patient?.firstName} {patient?.lastName}
+                        Patient: {patient?.firstName} {patient?.lastName} | Uploaded: {selectedScan ? new Date(selectedScan.uploadDate).toLocaleDateString() : ''}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-0 flex-1 min-h-0">
                     {/* Image Column */}
-                    <div className="relative bg-slate-100 flex items-center justify-center overflow-hidden border-r">
+                    <div className="relative bg-slate-900 flex items-center justify-center overflow-hidden border-r border-slate-200">
                        {selectedScan && <Image src={selectedScan.imageUrl} alt="Medical Scan" fill className="object-contain" />}
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10 pointer-events-none"></div>
                     </div>
                     {/* Analysis & Notes Column */}
                     <div className="flex flex-col gap-4 overflow-y-auto p-6">
                         <div>
-                            <h3 className="font-semibold text-lg flex items-center gap-2 mb-2"><BrainCircuit className="w-5 h-5 text-primary" /> AI Analysis</h3>
-                            <Separator/>
-                            <div className="space-y-5 text-sm mt-4">
-                                <div className="space-y-1">
+                            <h3 className="font-semibold text-lg flex items-center gap-2 mb-3"><BrainCircuit className="w-5 h-5 text-primary" /> AI-Powered Analysis</h3>
+                            <div className="space-y-5 text-sm">
+                                <div className="space-y-1 bg-slate-50 p-4 rounded-lg border border-slate-100">
                                     <h4 className="font-semibold text-slate-800">Summary</h4>
                                     <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.summary}</p>
                                 </div>
-                                {selectedScan?.aiAnalysis.criticalFindings && (<div className="space-y-1">
-                                    <h4 className="font-semibold text-red-600 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Critical Findings</h4>
-                                    <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.criticalFindings}</p>
+                                {selectedScan?.aiAnalysis.criticalFindings && (<div className="space-y-1 bg-red-50 p-4 rounded-lg border border-red-100">
+                                    <h4 className="font-semibold text-red-700 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Critical Findings</h4>
+                                    <p className="text-red-900 leading-relaxed">{selectedScan?.aiAnalysis.criticalFindings}</p>
                                 </div>)}
-                                {selectedScan?.aiAnalysis.keyFindings && (<div className="space-y-1">
-                                    <h4 className="font-semibold text-slate-800 flex items-center gap-2"><Microscope className="w-4 h-4"/> Key Findings</h4>
-                                    <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.keyFindings}</p>
+                                {selectedScan?.aiAnalysis.keyFindings && (<div className="space-y-1 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                    <h4 className="font-semibold text-blue-700 flex items-center gap-2"><Microscope className="w-4 h-4"/> Key Findings</h4>
+                                    <p className="text-blue-900 leading-relaxed">{selectedScan?.aiAnalysis.keyFindings}</p>
                                 </div>)}
                                  {selectedScan?.aiAnalysis.healthIssues && (<div className="space-y-1">
                                     <h4 className="font-semibold text-slate-800">Potential Health Issues</h4>
@@ -329,13 +431,12 @@ export default function PatientRecordPage() {
                                     <h4 className="font-semibold text-slate-800">Urgency Classification</h4>
                                     <Badge variant={selectedScan?.aiAnalysis.urgencyClassification === 'Emergency' ? 'destructive' : 'secondary'}>{selectedScan?.aiAnalysis.urgencyClassification}</Badge>
                                   </div>
-
                             </div>
                         </div>
                         <div className="flex-1 flex flex-col gap-2 pt-4 border-t">
                             <h3 className="font-semibold text-lg">Doctor's Notes</h3>
                             <Textarea 
-                                className="flex-1 resize-none" 
+                                className="flex-1 resize-none bg-slate-50" 
                                 placeholder="Add your observations and treatment plan here..."
                                 value={scanNotes}
                                 onChange={(e) => setScanNotes(e.target.value)}
@@ -343,7 +444,7 @@ export default function PatientRecordPage() {
                         </div>
                     </div>
                 </div>
-                 <DialogFooter className="p-6 border-t bg-slate-50">
+                 <DialogFooter className="p-6 border-t bg-slate-50/50">
                     <Button variant="outline" onClick={() => setSelectedScan(null)}>Close</Button>
                     <Button onClick={handleSaveScanNotes}>Save Notes</Button>
                 </DialogFooter>
@@ -353,15 +454,15 @@ export default function PatientRecordPage() {
         {/* Report Viewer Dialog */}
         <Dialog open={!!selectedReport} onOpenChange={(open) => !open && setSelectedReport(null)}>
             <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0">
-                <DialogHeader className="p-6 border-b">
-                    <DialogTitle className="text-2xl font-bold">Report Viewer: {selectedReport?.reportType}</DialogTitle>
+                <DialogHeader className="p-6 border-b bg-slate-50/50">
+                    <DialogTitle className="text-2xl font-bold">{selectedReport?.reportType} Analysis</DialogTitle>
                     <DialogDescription>
-                        Uploaded on {selectedReport ? new Date(selectedReport.uploadDate).toLocaleDateString() : ''} by {patient?.firstName} {patient?.lastName}
+                        Patient: {patient?.firstName} {patient?.lastName} | Uploaded: {selectedReport ? new Date(selectedReport.uploadDate).toLocaleDateString() : ''}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-0 flex-1 min-h-0">
                     {/* Report Content Column */}
-                    <div className="relative bg-slate-100 flex items-center justify-center overflow-hidden border-r">
+                    <div className="relative bg-slate-100 flex items-center justify-center overflow-hidden border-r border-slate-200">
                        {selectedReport && selectedReport.fileUrl.includes('image') ? (
                            <Image src={selectedReport.fileUrl} alt="Medical Report" fill className="object-contain" />
                        ) : (
@@ -371,26 +472,25 @@ export default function PatientRecordPage() {
                     {/* Analysis Column */}
                     <div className="flex flex-col gap-4 overflow-y-auto p-6">
                         <div>
-                            <h3 className="font-semibold text-lg flex items-center gap-2 mb-2"><BrainCircuit className="w-5 h-5 text-primary" /> AI Analysis</h3>
-                            <Separator/>
-                            <div className="space-y-5 text-sm mt-4">
-                                <div className="space-y-1">
+                           <h3 className="font-semibold text-lg flex items-center gap-2 mb-3"><BrainCircuit className="w-5 h-5 text-primary" /> AI-Powered Analysis</h3>
+                            <div className="space-y-5 text-sm">
+                                <div className="space-y-1 bg-slate-50 p-4 rounded-lg border border-slate-100">
                                     <h4 className="font-semibold text-slate-800">Summary</h4>
                                     <p className="text-slate-600 leading-relaxed">{selectedReport?.aiSummary}</p>
                                 </div>
-                                <div className="space-y-1">
-                                    <h4 className="font-semibold text-red-600 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Potential Issues</h4>
-                                    <p className="text-slate-600 leading-relaxed">{selectedReport?.aiPotentialIssues}</p>
+                                <div className="space-y-1 bg-red-50 p-4 rounded-lg border border-red-100">
+                                    <h4 className="font-semibold text-red-700 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Potential Issues</h4>
+                                    <p className="text-red-900 leading-relaxed">{selectedReport?.aiPotentialIssues}</p>
                                 </div>
-                                <div className="space-y-1">
-                                    <h4 className="font-semibold text-green-600 flex items-center gap-2"><ArrowRight className="w-4 h-4"/> Next Steps</h4>
-                                    <p className="text-slate-600 leading-relaxed">{selectedReport?.aiNextSteps}</p>
+                                <div className="space-y-1 bg-green-50 p-4 rounded-lg border border-green-100">
+                                    <h4 className="font-semibold text-green-700 flex items-center gap-2"><ArrowRight className="w-4 h-4"/> Next Steps</h4>
+                                    <p className="text-green-900 leading-relaxed">{selectedReport?.aiNextSteps}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                 <DialogFooter className="p-6 border-t bg-slate-50">
+                 <DialogFooter className="p-6 border-t bg-slate-50/50">
                     <Button variant="outline" onClick={() => setSelectedReport(null)}>Close</Button>
                 </DialogFooter>
             </DialogContent>
