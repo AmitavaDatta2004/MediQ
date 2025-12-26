@@ -166,40 +166,22 @@ export default function PatientRecordPage() {
                         <TabsContent value="reports">
                            <div className="space-y-4">
                             {medicalReports?.map(report => (
-                                <Collapsible key={report.id} className="border border-slate-100 rounded-lg">
-                                    <CollapsibleTrigger className="flex justify-between items-center w-full p-4 hover:bg-slate-50">
-                                        <div className="flex items-center gap-4">
-                                            <FileText className="h-6 w-6 text-primary" />
-                                            <div>
-                                                <div className="font-bold text-slate-800">{report.reportType}</div>
-                                                <div className="text-sm text-muted-foreground">Uploaded on {new Date(report.uploadDate).toLocaleDateString()}</div>
-                                            </div>
+                                <Card key={report.id} className="border border-slate-100 rounded-lg flex justify-between items-center p-4 hover:bg-slate-50">
+                                    <div className="flex items-center gap-4">
+                                        <FileText className="h-6 w-6 text-primary" />
+                                        <div>
+                                            <div className="font-bold text-slate-800">{report.reportType}</div>
+                                            <div className="text-sm text-muted-foreground">Uploaded on {new Date(report.uploadDate).toLocaleDateString()}</div>
                                         </div>
-                                        <div className="flex items-center gap-4">
-                                            <p className="text-sm text-muted-foreground max-w-md truncate">{report.aiSummary}</p>
-                                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenReportViewer(report);}}>
-                                                <Download className="mr-2 h-4 w-4" />
-                                                View Report
-                                            </Button>
-                                        </div>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent className="p-6 pt-0">
-                                        <div className="mt-4 border-t border-slate-200 pt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div>
-                                                <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-2"><BrainCircuit className="w-5 h-5 text-primary"/> AI Summary</h4>
-                                                <p className="text-sm text-slate-600">{report.aiSummary}</p>
-                                            </div>
-                                             <div>
-                                                <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-2"><AlertTriangle className="w-5 h-5 text-destructive"/> Potential Issues</h4>
-                                                <p className="text-sm text-slate-600">{report.aiPotentialIssues}</p>
-                                            </div>
-                                             <div>
-                                                <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-2"><ArrowRight className="w-5 h-5 text-green-600"/> Next Steps</h4>
-                                                <p className="text-sm text-slate-600">{report.aiNextSteps}</p>
-                                            </div>
-                                        </div>
-                                    </CollapsibleContent>
-                                </Collapsible>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <p className="text-sm text-muted-foreground max-w-md truncate">{report.aiSummary}</p>
+                                        <Button variant="outline" size="sm" onClick={() => handleOpenReportViewer(report)}>
+                                            <Download className="mr-2 h-4 w-4" />
+                                            View Report
+                                        </Button>
+                                    </div>
+                                </Card>
                             ))}
                            </div>
                            {medicalReports?.length === 0 && <p className="text-center text-muted-foreground py-8">No medical reports found.</p>}
