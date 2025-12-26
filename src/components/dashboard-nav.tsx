@@ -39,6 +39,7 @@ const patientNavItems = [
   { href: '/dashboard/report-analysis', icon: FileScan, label: 'Report Analysis' },
   { href: '/dashboard/scan-analysis', icon: HeartPulse, label: 'Scan Analysis' },
   { href: '/dashboard/doctors', icon: Stethoscope, label: 'Find a Doctor' },
+  { href: '/dashboard/medicines', icon: Pill, label: 'Medicines' },
   { href: '/dashboard/appointments', icon: Calendar, label: 'Appointments' },
   { href: '/dashboard/prescriptions', icon: Pill, label: 'Prescriptions' },
   { href: '/dashboard/orders', icon: Truck, label: 'Medicine Orders' },
@@ -101,7 +102,7 @@ export function DashboardNav({ userRole }: { userRole?: UserRole }) {
             <SidebarMenuItem key={item.href}>
               <Link href={item.href} passHref>
                 <SidebarMenuButton
-                  isActive={pathname === item.href}
+                  isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
                   tooltip={item.label}
                 >
                   <item.icon />
