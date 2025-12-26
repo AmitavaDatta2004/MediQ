@@ -21,7 +21,10 @@ function LoginForm({ role }: { role: UserRole }) {
     const [password, setPassword] = useState('');
 
     const handleLogin = () => {
-        if (!email || !password) return;
+        if (!email || !password) {
+            // This check prevents login with empty credentials.
+            return;
+        }
         initiateEmailSignIn(auth, email, password);
         router.push('/dashboard');
     }
