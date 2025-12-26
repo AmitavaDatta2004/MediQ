@@ -1,4 +1,3 @@
-
 'use client';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,15 +10,18 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useDoc, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { doc, collection, addDoc } from 'firebase/firestore';
+import { doc, collection, addDoc, query, orderBy } from 'firebase/firestore';
 import type { Patient, Allergy, ChronicCondition, ScanImage, MedicalReport } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { X, Plus, Upload, Loader2 } from 'lucide-react';
+import { X, Plus, Upload, Loader2, FileText, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { analyzeMedicalDocumentAction, processMedicalImageAction, summarizeMedicalReportAction } from '@/app/actions';
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function HealthInventoryPage() {
     const { user } = useUser();
@@ -48,6 +50,19 @@ export default function HealthInventoryPage() {
         return collection(firestore, `patients/${user.uid}/chronic_conditions`);
     }, [firestore, user]);
     const { data: chronicConditions, isLoading: isConditionsLoading } = useCollection<ChronicCondition>(conditionsCollectionRef);
+    
+    // Queries for saved data
+    const reportsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, `patients/${user.uid}/medical_reports`), orderBy('uploadDate', 'desc'));
+    }, [firestore, user]);
+    const { data: medicalReports, isLoading: isReportsLoading } = useCollection<MedicalReport>(reportsQuery);
+
+    const scansQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, `patients/${user.uid}/scan_images`), orderBy('uploadDate', 'desc'));
+    }, [firestore, user]);
+    const { data: scanImages, isLoading: isScansLoading } = useCollection<ScanImage>(scansQuery);
   
     const [patientData, setPatientData] = useState<Partial<Patient>>({});
 
@@ -219,7 +234,7 @@ export default function HealthInventoryPage() {
         reader.readAsDataURL(file);
     };
 
-    const isLoading = isPatientLoading || isAllergiesLoading || isConditionsLoading;
+    const isLoading = isPatientLoading || isAllergiesLoading || isConditionsLoading || isReportsLoading || isScansLoading;
 
     if (isLoading) {
         return <div>Loading your health inventory...</div>
@@ -306,6 +321,76 @@ export default function HealthInventoryPage() {
                                 <Input placeholder="Add a new condition (e.g., Hypertension)" value={newCondition} onChange={(e) => setNewCondition(e.target.value)} />
                                 <Button onClick={handleAddCondition}><Plus className="mr-2 h-4 w-4" /> Add</Button>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>My Medical Reports</CardTitle>
+                            <CardDescription>A log of your uploaded and analyzed documents.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Report</TableHead>
+                                        <TableHead>Uploaded On</TableHead>
+                                        <TableHead>Summary</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {medicalReports?.map(report => (
+                                        <TableRow key={report.id}>
+                                            <TableCell className="font-medium flex items-center gap-2">
+                                                <FileText className="h-5 w-5 text-primary" />
+                                                <span>{report.reportType}</span>
+                                            </TableCell>
+                                            <TableCell>{new Date(report.uploadDate).toLocaleDateString()}</TableCell>
+                                            <TableCell className="max-w-xs truncate">{report.aiSummary}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button asChild variant="outline" size="sm">
+                                                    <Link href={report.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                        <Download className="mr-2 h-4 w-4" />
+                                                        View
+                                                    </Link>
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                            {medicalReports?.length === 0 && <p className="text-center text-muted-foreground py-8">No medical reports found.</p>}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>My Scan Images</CardTitle>
+                            <CardDescription>A gallery of your uploaded and analyzed scans.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {scanImages?.map(scan => (
+                                    <Card key={scan.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+                                        <CardHeader>
+                                            <div className="relative aspect-video w-full rounded-md overflow-hidden">
+                                                <Image src={scan.imageUrl} alt={`Scan from ${new Date(scan.uploadDate).toLocaleDateString()}`} fill className='object-cover' data-ai-hint="medical scan" />
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <CardTitle className="text-lg">{scan.scanType}</CardTitle>
+                                            <CardDescription>Uploaded on {new Date(scan.uploadDate).toLocaleDateString()}</CardDescription>
+                                            <div className="flex items-center justify-between mt-4">
+                                                <span className="text-sm font-medium">Urgency:</span>
+                                                <Badge variant={scan.aiAnalysis.urgencyClassification === 'Emergency' || scan.aiAnalysis.urgencyClassification === 'Urgent' ? 'destructive' : 'secondary'}>{scan.aiAnalysis.urgencyClassification}</Badge>
+                                            </div>
+                                             <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{scan.aiAnalysis.summary}</p>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                             </div>
+                             {scanImages?.length === 0 && <p className="text-center text-muted-foreground py-8">No scan images found.</p>}
                         </CardContent>
                     </Card>
                     
