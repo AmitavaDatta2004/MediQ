@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Upload, Loader2, FileText, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Upload, Loader2, FileText, AlertTriangle, ArrowRight, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,49 +16,35 @@ import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage"
 export default function ReportAnalysisPage() {
   const [report, setReport] = useState<SummarizeMedicalReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [fileDataUri, setFileDataUri] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile || !user) return;
 
     setIsLoading(true);
     setReport(null);
-    setFileName(file.name);
+    setFile(selectedFile);
+    setFileName(selectedFile.name);
+    setFileDataUri('');
 
     const reader = new FileReader();
     reader.onload = async (e) => {
       const dataUri = e.target?.result as string;
+      setFileDataUri(dataUri);
       try {
         const result = await summarizeMedicalReportAction({ reportDataUri: dataUri });
         setReport(result);
-        
-        // 1. Upload file to Firebase Storage
-        const storage = getStorage();
-        const storageRef = ref(storage, `patients/${user.uid}/medical_reports/${uuidv4()}_${file.name}`);
-        const snapshot = await uploadString(storageRef, dataUri, 'data_url');
-        const downloadURL = await getDownloadURL(snapshot.ref);
-
-        // 2. Save analysis to Firestore
-        const reportId = uuidv4();
-        const reportCollectionRef = collection(firestore, `patients/${user.uid}/medical_reports`);
-        await addDoc(reportCollectionRef, {
-            id: reportId,
-            patientId: user.uid,
-            uploadDate: new Date().toISOString(),
-            reportType: file.type.startsWith('image') ? 'Image' : 'PDF Document',
-            fileUrl: downloadURL,
-            aiSummary: result.summary,
-            aiPotentialIssues: result.potentialIssues,
-            aiNextSteps: result.nextSteps,
-        });
-
         toast({
-          title: "Analysis Complete & Saved",
-          description: "Your medical report has been analyzed and saved to your records.",
+          title: "Analysis Complete",
+          description: "Review the results and save them to the patient's record.",
         });
       } catch (error) {
         console.error(error);
@@ -71,8 +57,64 @@ export default function ReportAnalysisPage() {
         setIsLoading(false);
       }
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(selectedFile);
   };
+  
+  const handleSaveReport = async () => {
+    if (!report || !fileDataUri || !file || !user) {
+        toast({
+            variant: "destructive",
+            title: "Save Failed",
+            description: "No report analysis to save.",
+        });
+        return;
+    }
+    
+    setIsSaving(true);
+    toast({ title: "Saving Report..." });
+    
+    try {
+        // 1. Upload file to Firebase Storage
+        const storage = getStorage();
+        const storageRef = ref(storage, `patients/${user.uid}/medical_reports/${uuidv4()}_${file.name}`);
+        const snapshot = await uploadString(storageRef, fileDataUri, 'data_url');
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        // 2. Save analysis to Firestore
+        const reportId = uuidv4();
+        const reportCollectionRef = collection(firestore, `patients/${user.uid}/medical_reports`);
+        await addDoc(reportCollectionRef, {
+            id: reportId,
+            patientId: user.uid,
+            uploadDate: new Date().toISOString(),
+            reportType: file.type.startsWith('image') ? 'Image' : 'PDF Document',
+            fileUrl: downloadURL,
+            aiSummary: report.summary,
+            aiPotentialIssues: report.potentialIssues,
+            aiNextSteps: report.nextSteps,
+        });
+
+        toast({
+          title: "Report Saved",
+          description: "The analysis has been saved to your records.",
+        });
+        // Clear state after saving
+        setReport(null);
+        setFileDataUri('');
+        setFileName('');
+        setFile(null);
+
+    } catch(error) {
+        console.error("Failed to save report:", error);
+        toast({
+            variant: "destructive",
+            title: "Save Failed",
+            description: "There was an error saving your report.",
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  }
 
   return (
     <div className="grid gap-6 md:grid-cols-3">
@@ -89,13 +131,13 @@ export default function ReportAnalysisPage() {
               <label htmlFor="report-upload" className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors">
                 <Upload className="w-12 h-12 text-muted-foreground" />
                 <p className="mt-4 text-sm text-muted-foreground">Drag & drop or click to upload</p>
-                 <Input id="report-upload" type="file" className="hidden" onChange={handleFileChange} accept="image/*,application/pdf" disabled={isLoading} />
+                 <Input id="report-upload" type="file" className="hidden" onChange={handleFileChange} accept="image/*,application/pdf" disabled={isLoading || isSaving} />
               </label>
               {fileName && <p className="text-sm text-center text-muted-foreground">File: {fileName}</p>}
               {isLoading && (
                 <div className="flex items-center justify-center gap-2 text-muted-foreground">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Analyzing and saving...</span>
+                  <span>Analyzing report...</span>
                 </div>
               )}
             </div>
@@ -106,10 +148,20 @@ export default function ReportAnalysisPage() {
       <div className="md:col-span-2">
         <Card className="min-h-[500px]">
           <CardHeader>
-            <CardTitle>AI-Generated Summary</CardTitle>
-            <CardDescription>
-              This is an AI-powered summary and should not replace professional medical advice.
-            </CardDescription>
+            <div className="flex justify-between items-center">
+                <div>
+                    <CardTitle>AI-Generated Summary</CardTitle>
+                    <CardDescription>
+                    This is an AI-powered summary and should not replace professional medical advice.
+                    </CardDescription>
+                </div>
+                {report && !isLoading && (
+                    <Button onClick={handleSaveReport} disabled={isSaving}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save to Records
+                    </Button>
+                )}
+            </div>
           </CardHeader>
           <CardContent>
             {report ? (

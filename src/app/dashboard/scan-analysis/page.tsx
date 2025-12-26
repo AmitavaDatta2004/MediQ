@@ -7,7 +7,7 @@ import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage"
 import { useToast } from '@/hooks/use-toast';
 import { analyzeMedicalDocumentAction, processMedicalImageAction } from '@/app/actions';
 import type { ScanImage, UploadedFile } from '@/lib/types';
-import { UploadCloud, Loader2, ScanEye, FileText, Wand2, Download, ShieldCheck } from 'lucide-react';
+import { UploadCloud, Loader2, ScanEye, FileText, Wand2, Download, ShieldCheck, Save } from 'lucide-react';
 import { ImageAnnotator } from '@/components/image-annotator';
 import {
   Card,
@@ -18,10 +18,13 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import type { TextAnalysisOutput } from '@/ai/schemas';
 
 export default function ScanAnalysisPage() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const { user } = useUser();
   const firestore = useFirestore();
@@ -55,45 +58,29 @@ export default function ScanAnalysisPage() {
         setProcessingStatus('Uploading to secure storage...');
         const storage = getStorage();
         
-        // Use a more specific path for uploads that will be processed.
-        const uploadRef = ref(storage, `patients/${user.uid}/uploads/${newFile.scanId}_${file.name}`);
-        const uploadSnapshot = await uploadString(uploadRef, base64DataUrl, 'data_url');
-        const originalImageUrl = await getDownloadURL(uploadSnapshot.ref);
+        // This is a temporary upload to a processing location
+        const tempUploadRef = ref(storage, `patients/${user.uid}/uploads/${newFile.scanId}_original_${file.name}`);
+        const uploadSnapshot = await uploadString(tempUploadRef, base64DataUrl, 'data_url');
+        const tempOriginalImageUrl = await getDownloadURL(uploadSnapshot.ref);
 
         setProcessingStatus('Denoising & Cropping...');
-        const processedResult = await processMedicalImageAction({ imageUrl: originalImageUrl });
+        const processedResult = await processMedicalImageAction({ imageUrl: tempOriginalImageUrl });
         const processedDataUrl = processedResult.analyzedImageUrl;
         
         setFiles(prev => prev.map(f => f.id === fileId ? { ...f, processedUrl: processedDataUrl } : f));
 
         setProcessingStatus('Analyzing Scan...');
-        const textResult = await analyzeMedicalDocumentAction({ imageUrl: originalImageUrl, scanType: 'X-ray' });
+        const textResult = await analyzeMedicalDocumentAction({ imageUrl: tempOriginalImageUrl, scanType: 'X-ray' });
         
         setFiles(prev => prev.map(f => f.id === fileId ? { ...f, analysisResult: textResult } : f));
-
-        // Upload the AI-processed image to storage as well
-        const analyzedImageRef = ref(storage, `patients/${user.uid}/scan_images/${newFile.scanId}_analyzed`);
-        const analyzedImageSnapshot = await uploadString(analyzedImageRef, processedDataUrl, 'data_url');
-        const finalAnalyzedImageUrl = await getDownloadURL(analyzedImageSnapshot.ref);
-
-        // Save the final record to Firestore
-        const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
-        const finalScanData: ScanImage = {
-              id: newFile.scanId,
-              patientId: user.uid,
-              uploadDate: new Date().toISOString(),
-              scanType: 'X-ray', // Or detect from UI
-              imageUrl: originalImageUrl, // URL to the original uploaded image
-              analyzedImageUrl: finalAnalyzedImageUrl, // URL to the AI-enhanced image
-              aiAnalysis: textResult
-        };
-        await addDoc(scanCollectionRef, finalScanData);
         
-        toast({ title: "Analysis Complete & Saved", description: "Your scan has been saved to your records." });
+        toast({ title: "Analysis Complete", description: "Review the analysis and save it to the patient record." });
 
       } catch (error) {
         console.error("Analysis pipeline failed", error);
         toast({ variant: 'destructive', title: 'Analysis Failed', description: 'An unexpected error occurred.'})
+        // Clean up failed file from UI
+        setFiles(prev => prev.filter(f => f.id !== fileId));
       } finally {
         setIsUploading(false);
         setProcessingStatus('');
@@ -102,6 +89,54 @@ export default function ScanAnalysisPage() {
     reader.readAsDataURL(file);
   };
   
+  const handleSaveScan = async (file: UploadedFile) => {
+    if (!file.previewUrl || !file.processedUrl || !file.analysisResult || !user) {
+        toast({ variant: 'destructive', title: 'Save Error', description: 'Missing data to save the scan.' });
+        return;
+    }
+    
+    setIsSaving(true);
+    toast({ title: 'Saving Scan to Record...' });
+
+    try {
+        const storage = getStorage();
+
+        // 1. Upload original image
+        const originalImageRef = ref(storage, `patients/${user.uid}/scan_images/${file.scanId}_original.jpg`);
+        await uploadString(originalImageRef, file.previewUrl, 'data_url');
+        const originalImageUrl = await getDownloadURL(originalImageRef);
+        
+        // 2. Upload processed image
+        const analyzedImageRef = ref(storage, `patients/${user.uid}/scan_images/${file.scanId}_analyzed.jpg`);
+        await uploadString(analyzedImageRef, file.processedUrl, 'data_url');
+        const finalAnalyzedImageUrl = await getDownloadURL(analyzedImageRef);
+        
+        // 3. Save the final record to Firestore
+        const scanCollectionRef = collection(firestore, `patients/${user.uid}/scan_images`);
+        const finalScanData: ScanImage = {
+              id: file.scanId,
+              patientId: user.uid,
+              uploadDate: new Date().toISOString(),
+              scanType: 'X-ray', // Or detect from UI
+              imageUrl: originalImageUrl,
+              analyzedImageUrl: finalAnalyzedImageUrl,
+              aiAnalysis: file.analysisResult
+        };
+        await addDoc(scanCollectionRef, finalScanData);
+
+        toast({ title: "Scan Saved", description: "The scan and its analysis are now part of your permanent record." });
+
+        // Optionally remove from the UI after saving
+        setFiles(prev => prev.filter(f => f.id !== file.id));
+
+    } catch (error) {
+        console.error("Failed to save scan:", error);
+        toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save the scan to your records.' });
+    } finally {
+        setIsSaving(false);
+    }
+  }
+
   const downloadAnnotatedImage = async (file: UploadedFile) => {
     const imageUrl = file.processedUrl || file.previewUrl;
     if (!imageUrl || !file.analysisResult) return;
@@ -157,7 +192,7 @@ export default function ScanAnalysisPage() {
       </div>
       
       <Card className="relative overflow-hidden border-2 border-dashed border-primary/20 bg-white hover:border-primary/40 hover:bg-primary/5 transition-all duration-300 group cursor-pointer shadow-sm hover:shadow-md">
-         <input type="file" id="fileUpload" className="hidden" accept="image/*,.pdf" onChange={handleFileUpload} disabled={isUploading} />
+         <input type="file" id="fileUpload" className="hidden" accept="image/*,.pdf" onChange={handleFileUpload} disabled={isUploading || isSaving} />
          <label htmlFor="fileUpload" className="cursor-pointer flex flex-col items-center justify-center w-full h-full p-12">
             {isUploading ? (
               <div className="flex flex-col items-center py-6">
@@ -208,6 +243,12 @@ export default function ScanAnalysisPage() {
                     <Badge variant={file.analysisResult ? 'default' : 'outline'} className={`uppercase tracking-wide shadow-sm ${file.analysisResult ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                       {file.analysisResult ? 'Analyzed' : 'Pending'}
                     </Badge>
+                    {file.analysisResult && (
+                        <Button size="sm" onClick={() => handleSaveScan(file)} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                             Save to Records
+                        </Button>
+                    )}
                  </div>
               </CardHeader>
 
