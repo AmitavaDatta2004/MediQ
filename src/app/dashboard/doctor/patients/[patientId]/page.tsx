@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useDoc, useCollection, useUser, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
 import type { MedicalReport, ScanImage, Patient, Prescription, Doctor } from '@/lib/types';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { FileText, Image as ImageIcon, Download, Stethoscope, PlusCircle } from 'lucide-react';
+import { FileText, Image as ImageIcon, Download, Stethoscope, PlusCircle, X } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -31,6 +31,9 @@ export default function PatientRecordPage() {
     const [isPrescribing, setIsPrescribing] = useState(false);
     const [medicines, setMedicines] = useState([{ name: '', dosage: '', frequency: '' }]);
     const [prescriptionNotes, setPrescriptionNotes] = useState('');
+    
+    const [selectedScan, setSelectedScan] = useState<ScanImage | null>(null);
+    const [scanNotes, setScanNotes] = useState('');
 
     const patientDocRef = useMemoFirebase(() => doc(firestore, 'patients', patientId), [firestore, patientId]);
     const { data: patient, isLoading: patientLoading } = useDoc<Patient>(patientDocRef);
@@ -98,6 +101,22 @@ export default function PatientRecordPage() {
         setMedicines([{ name: '', dosage: '', frequency: '' }]);
         setPrescriptionNotes('');
     }
+    
+    const handleOpenScanViewer = (scan: ScanImage) => {
+        setSelectedScan(scan);
+        setScanNotes(''); // Reset notes when opening
+    };
+
+    const handleSaveScanNotes = () => {
+        if (!selectedScan) return;
+        // In a real app, you would save `scanNotes` to the Firestore document for the scan.
+        console.log('Saving notes for scan:', selectedScan.id, 'Notes:', scanNotes);
+        toast({
+            title: 'Notes Saved',
+            description: 'Your notes for the scan have been saved.',
+        });
+        setSelectedScan(null);
+    };
 
     if (isLoading) {
         return <div>Loading patient records...</div>
@@ -183,7 +202,7 @@ export default function PatientRecordPage() {
                         <CardContent>
                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {scanImages?.map(scan => (
-                                    <Card key={scan.id}>
+                                    <Card key={scan.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleOpenScanViewer(scan)}>
                                         <CardHeader>
                                             <div className="relative aspect-video w-full rounded-md overflow-hidden">
                                                 <Image src={scan.imageUrl} alt={`Scan from ${new Date(scan.uploadDate).toLocaleDateString()}`} fill className='object-cover' data-ai-hint="medical scan" />
@@ -238,6 +257,7 @@ export default function PatientRecordPage() {
             </Tabs>
         </div>
 
+        {/* Prescription Dialog */}
         <Dialog open={isPrescribing} onOpenChange={setIsPrescribing}>
             <DialogContent className="sm:max-w-[625px]">
                 <DialogHeader>
@@ -277,6 +297,34 @@ export default function PatientRecordPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        
+        {/* Scan Viewer Dialog */}
+        <Dialog open={!!selectedScan} onOpenChange={(open) => !open && setSelectedScan(null)}>
+            <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Scan Viewer: {selectedScan?.scanType}</DialogTitle>
+                    <DialogDescription>
+                        Uploaded on {selectedScan ? new Date(selectedScan.uploadDate).toLocaleDateString() : ''}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0">
+                    <div className="relative bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                       {selectedScan && <Image src={selectedScan.imageUrl} alt="Medical Scan" layout="fill" objectFit="contain" />}
+                    </div>
+                    <div className="flex flex-col gap-4">
+                        <h3 className="font-semibold">Doctor's Notes</h3>
+                        <Textarea 
+                            className="flex-1 resize-none" 
+                            placeholder="Add your observations here..."
+                            value={scanNotes}
+                            onChange={(e) => setScanNotes(e.target.value)}
+                        />
+                         <Button onClick={handleSaveScanNotes}>Save Notes</Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+
         </>
     )
 }
