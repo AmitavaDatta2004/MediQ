@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect, useRef } from 'react';
 import type { MedicalFinding } from '@/lib/types';
 import { AlertCircle, Info, ScanLine, Flame, Layers, MousePointer2 } from 'lucide-react';
 
@@ -11,9 +11,74 @@ interface ImageAnnotatorProps {
 
 type ViewMode = 'box' | 'heatmap' | 'combined';
 
+interface ImageGeometry {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+}
+
 export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findings }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('combined');
+  const [geometry, setGeometry] = useState<ImageGeometry | null>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const calculateGeometry = () => {
+        if (!imageRef.current || !containerRef.current) return;
+
+        const { naturalWidth, naturalHeight } = imageRef.current;
+        const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect();
+        
+        const imageAspectRatio = naturalWidth / naturalHeight;
+        const containerAspectRatio = containerWidth / containerHeight;
+
+        let renderedWidth, renderedHeight, left, top;
+
+        if (imageAspectRatio > containerAspectRatio) {
+            // Image is wider than container, so it's constrained by width (letterboxed top/bottom)
+            renderedWidth = containerWidth;
+            renderedHeight = containerWidth / imageAspectRatio;
+            left = 0;
+            top = (containerHeight - renderedHeight) / 2;
+        } else {
+            // Image is taller than container, so it's constrained by height (letterboxed left/right)
+            renderedHeight = containerHeight;
+            renderedWidth = containerHeight * imageAspectRatio;
+            top = 0;
+            left = (containerWidth - renderedWidth) / 2;
+        }
+
+        setGeometry({ width: renderedWidth, height: renderedHeight, left, top });
+    };
+    
+    // Calculate on image load
+    const img = imageRef.current;
+    if (img) {
+      img.onload = calculateGeometry;
+      if (img.complete) { // if image is already cached and loaded
+        calculateGeometry();
+      }
+    }
+    
+    // Recalculate on resize
+    const resizeObserver = new ResizeObserver(calculateGeometry);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    return () => {
+      if (containerRef.current) {
+        resizeObserver.unobserve(containerRef.current);
+      }
+       if (img) {
+        img.onload = null;
+      }
+    };
+  }, [imageUrl]);
+
 
   // Filter findings that actually have coordinates. Safely handle undefined/null findings.
   const visualFindings = (findings || []).filter(f => f.box_2d);
@@ -72,37 +137,28 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
           </button>
         </div>
       </div>
-
-      {/* 
-        Image Container Strategy:
-        We need the overlays (absolute) to position themselves relative to the *exact* dimensions of the visible image.
-        If we just use `w-full h-auto` on the img, it might stretch.
-        Strategy: 
-        1. Outer Flex Container: Centers the content.
-        2. Relative Wrapper: `inline-block`. Shrinks to fit the image dimensions exactly.
-        3. Image: `block`. Max constraints applied here.
-      */}
-      <div className="w-full bg-black/40 rounded-xl border border-gray-800 p-4 flex justify-center min-h-[400px]">
-        
-        <div className="relative inline-block max-w-full">
-            {/* Base Image */}
+      
+      <div 
+        ref={containerRef}
+        className="w-full bg-black/40 rounded-xl border border-gray-800 p-4 flex justify-center items-center min-h-[400px] h-[60vh] max-h-[700px] overflow-hidden"
+      >
+        <div className="relative" style={geometry ? { width: geometry.width, height: geometry.height } : { width: '100%', height: '100%' }}>
             <img 
+              ref={imageRef}
               src={imageUrl} 
               alt="Medical Scan Analysis" 
-              className="block max-h-[600px] max-w-full h-auto w-auto object-contain rounded-lg"
+              className="block h-full w-full object-contain rounded-lg"
               draggable={false}
+              crossOrigin="anonymous" // Important for canvas operations if needed
             />
 
-            {/* Layers Overlay - Positioned absolutely relative to the image wrapper */}
-            
-            {/* 1. Heatmap Layer */}
-            {(viewMode === 'heatmap' || viewMode === 'combined') && (
-              <div className="absolute inset-0 z-10 pointer-events-none">
-                {visualFindings.map((finding, idx) => {
+            {geometry && (
+              <div className="absolute inset-0">
+                {/* Heatmap Layer */}
+                {(viewMode === 'heatmap' || viewMode === 'combined') && visualFindings.map((finding, idx) => {
                   if (!finding.box_2d) return null;
                   const { ymin, xmin, ymax, xmax } = finding.box_2d;
                   const gradient = getHeatmapStyle(finding.confidence);
-
                   return (
                     <div
                       key={`heat-${idx}`}
@@ -118,69 +174,51 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({ imageUrl, findin
                     />
                   );
                 })}
+
+                {/* Bounding Box Layer */}
+                {(viewMode === 'box' || viewMode === 'combined') && visualFindings.map((finding, idx) => {
+                  if (!finding.box_2d) return null;
+                  const { ymin, xmin, ymax, xmax } = finding.box_2d;
+                  const isHovered = hoveredIndex === idx;
+
+                  return (
+                    <div
+                      key={`box-${idx}`}
+                      className={`absolute z-20 cursor-help transition-all duration-200 ${isHovered ? 'z-30' : ''}`}
+                      style={{
+                        top: `${ymin * 100}%`,
+                        left: `${xmin * 100}%`,
+                        height: `${(ymax - ymin) * 100}%`,
+                        width: `${(xmax - xmin) * 100}%`,
+                      }}
+                      onMouseEnter={() => setHoveredIndex(idx)}
+                      onMouseLeave={() => setHoveredIndex(null)}
+                    >
+                      <div className={`w-full h-full border-2 rounded-sm shadow-sm transition-colors duration-200 ${isHovered ? 'border-white bg-white/10 shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-red-500/80 hover:border-red-400'}`}></div>
+                      <div className={`absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 -mt-[1px] -ml-[1px] ${isHovered ? 'border-white' : 'border-red-500'}`}></div>
+                      <div className={`absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 -mt-[1px] -mr-[1px] ${isHovered ? 'border-white' : 'border-red-500'}`}></div>
+                      <div className={`absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 -mb-[1px] -ml-[1px] ${isHovered ? 'border-white' : 'border-red-500'}`}></div>
+                      <div className={`absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 -mb-[1px] -mr-[1px] ${isHovered ? 'border-white' : 'border-red-500'}`}></div>
+                      <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shadow-md transition-transform ${isHovered ? 'bg-white text-gray-900 scale-110' : 'bg-red-600 text-white'}`}>{idx + 1}</div>
+                      {isHovered && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 bg-gray-900/95 backdrop-blur-md text-white rounded-lg p-3 shadow-2xl border border-gray-700 animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-none">
+                          <div className="flex items-center gap-2 mb-1 border-b border-gray-700 pb-2">
+                             <span className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center text-[8px] font-bold">{idx + 1}</span>
+                             <span className="font-semibold text-xs text-gray-100">{finding.label}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-wider font-medium">
+                            <span>Confidence</span>
+                            <span className="text-primary">{finding.confidence}</span>
+                          </div>
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-gray-900/95"></div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
-
-            {/* 2. Bounding Box Layer */}
-            {(viewMode === 'box' || viewMode === 'combined') && visualFindings.map((finding, idx) => {
-              if (!finding.box_2d) return null;
-              const { ymin, xmin, ymax, xmax } = finding.box_2d;
-              const isHovered = hoveredIndex === idx;
-
-              return (
-                <div
-                  key={`box-${idx}`}
-                  className={`absolute z-20 cursor-help transition-all duration-200 ${
-                     isHovered ? 'z-30' : ''
-                  }`}
-                  style={{
-                    top: `${ymin * 100}%`,
-                    left: `${xmin * 100}%`,
-                    height: `${(ymax - ymin) * 100}%`,
-                    width: `${(xmax - xmin) * 100}%`,
-                  }}
-                  onMouseEnter={() => setHoveredIndex(idx)}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                >
-                  {/* The Box Outline */}
-                  <div className={`w-full h-full border-2 rounded-sm shadow-sm transition-colors duration-200 ${
-                    isHovered 
-                      ? 'border-white bg-white/10 shadow-[0_0_15px_rgba(255,255,255,0.3)]' 
-                      : 'border-red-500/80 hover:border-red-400'
-                  }`}></div>
-
-                  {/* Corner Markers for tech feel */}
-                  <div className={`absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 -mt-[1px] -ml-[1px] ${isHovered ? 'border-white' : 'border-red-500'}`}></div>
-                  <div className={`absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 -mt-[1px] -mr-[1px] ${isHovered ? 'border-white' : 'border-red-500'}`}></div>
-                  <div className={`absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 -mb-[1px] -ml-[1px] ${isHovered ? 'border-white' : 'border-red-500'}`}></div>
-                  <div className={`absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 -mb-[1px] -mr-[1px] ${isHovered ? 'border-white' : 'border-red-500'}`}></div>
-
-                  {/* Floating Label (Top Right of Box) */}
-                  <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shadow-md transition-transform ${
-                    isHovered ? 'bg-white text-gray-900 scale-110' : 'bg-red-600 text-white'
-                  }`}>
-                    {idx + 1}
-                  </div>
-
-                  {/* Enhanced Tooltip */}
-                  {isHovered && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 bg-gray-900/95 backdrop-blur-md text-white rounded-lg p-3 shadow-2xl border border-gray-700 animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-none">
-                      <div className="flex items-center gap-2 mb-1 border-b border-gray-700 pb-2">
-                         <span className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center text-[8px] font-bold">{idx + 1}</span>
-                         <span className="font-semibold text-xs text-gray-100">{finding.label}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-wider font-medium">
-                        <span>Confidence</span>
-                        <span className="text-primary">{finding.confidence}</span>
-                      </div>
-                      {/* Triangle Pointer */}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-gray-900/95"></div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
+            
             {/* Empty State Overlay */}
             {!hasFindings && (
               <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-white/10 text-white/80 text-xs px-3 py-1.5 rounded-full flex items-center gap-2">
