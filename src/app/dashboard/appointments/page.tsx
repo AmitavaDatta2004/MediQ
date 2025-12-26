@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCollection, useUser, useFirestore, useMemoFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, getDocs } from 'firebase/firestore';
 import type { Appointment, Doctor } from '@/lib/types';
 import { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -98,6 +98,38 @@ export default function AppointmentsPage() {
         return;
     }
 
+    const selectedDoctor = getDoctor(selectedDoctorId);
+    if (!selectedDoctor || selectedDoctor.patientsPerDay === undefined) {
+         toast({
+            variant: "destructive",
+            title: "Doctor Info Missing",
+            description: "Could not retrieve doctor's daily patient limit. Please try again later.",
+        });
+        return;
+    }
+
+    const requestedDate = new Date(appointmentDateTime);
+    const startOfDay = new Date(requestedDate.getFullYear(), requestedDate.getMonth(), requestedDate.getDate()).toISOString();
+    const endOfDay = new Date(requestedDate.getFullYear(), requestedDate.getMonth(), requestedDate.getDate() + 1).toISOString();
+
+    const doctorAppointmentsQuery = query(
+        collection(firestore, `doctors/${selectedDoctorId}/appointments`),
+        where('appointmentDateTime', '>=', startOfDay),
+        where('appointmentDateTime', '<', endOfDay)
+    );
+
+    const todaysAppointmentsSnapshot = await getDocs(doctorAppointmentsQuery);
+    const appointmentsToday = todaysAppointmentsSnapshot.size;
+
+    if (appointmentsToday >= selectedDoctor.patientsPerDay) {
+        toast({
+            variant: "destructive",
+            title: "Doctor Unavailable",
+            description: `Dr. ${selectedDoctor.lastName} is fully booked on this day. Please choose another date.`,
+        });
+        return;
+    }
+
     const appointmentId = uuidv4();
 
     const appointmentData: Appointment = {
@@ -117,8 +149,6 @@ export default function AppointmentsPage() {
     // Denormalize appointment in doctor's subcollection
     const doctorAppointmentRef = doc(firestore, `doctors/${selectedDoctorId}/appointments`, appointmentId);
     setDocumentNonBlocking(doctorAppointmentRef, appointmentData, { merge: false });
-
-    const selectedDoctor = getDoctor(selectedDoctorId);
 
     toast({
         title: "Appointment Request Sent!",
