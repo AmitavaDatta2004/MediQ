@@ -7,9 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { FileText, Image as ImageIcon, Download, Stethoscope, PlusCircle, X, ArrowRight, AlertTriangle, BrainCircuit, Microscope, Pill } from 'lucide-react';
+import { FileText, Download, Stethoscope, PlusCircle, X, ArrowRight, AlertTriangle, BrainCircuit, Microscope, Pill } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -20,7 +19,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { useParams } from 'next/navigation';
 import { addDoc } from 'firebase/firestore';
 import { Separator } from '@/components/ui/separator';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export default function PatientRecordPage() {
     const { user } = useUser();
@@ -166,7 +164,7 @@ export default function PatientRecordPage() {
                         <TabsContent value="reports">
                            <div className="space-y-4">
                             {medicalReports?.map(report => (
-                                <Card key={report.id} className="border border-slate-100 rounded-lg flex justify-between items-center p-4 hover:bg-slate-50">
+                                <Card key={report.id} className="border border-slate-100 rounded-lg flex justify-between items-center p-4 hover:bg-slate-50/50 transition-colors">
                                     <div className="flex items-center gap-4">
                                         <FileText className="h-6 w-6 text-primary" />
                                         <div>
@@ -283,58 +281,58 @@ export default function PatientRecordPage() {
         
          {/* Scan Viewer Dialog */}
         <Dialog open={!!selectedScan} onOpenChange={(open) => !open && setSelectedScan(null)}>
-            <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
-                <DialogHeader className="p-6 pb-0">
-                    <DialogTitle>Scan Viewer: {selectedScan?.scanType}</DialogTitle>
+            <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0">
+                <DialogHeader className="p-6 border-b">
+                    <DialogTitle className="text-2xl font-bold">Scan Viewer: {selectedScan?.scanType}</DialogTitle>
                     <DialogDescription>
                         Uploaded on {selectedScan ? new Date(selectedScan.uploadDate).toLocaleDateString() : ''} for {patient?.firstName} {patient?.lastName}
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-0 flex-1 min-h-0">
                     {/* Image Column */}
-                    <div className="relative bg-muted/50 rounded-lg flex items-center justify-center overflow-hidden border">
+                    <div className="relative bg-slate-100 flex items-center justify-center overflow-hidden border-r">
                        {selectedScan && <Image src={selectedScan.imageUrl} alt="Medical Scan" fill className="object-contain" />}
                     </div>
                     {/* Analysis & Notes Column */}
-                    <div className="flex flex-col gap-4 overflow-y-auto">
+                    <div className="flex flex-col gap-4 overflow-y-auto p-6">
                         <div>
-                            <h3 className="font-semibold text-lg flex items-center gap-2"><BrainCircuit className="w-5 h-5 text-primary" /> AI Analysis</h3>
-                            <Separator className="my-2"/>
-                            <div className="space-y-4 text-sm">
+                            <h3 className="font-semibold text-lg flex items-center gap-2 mb-2"><BrainCircuit className="w-5 h-5 text-primary" /> AI Analysis</h3>
+                            <Separator/>
+                            <div className="space-y-5 text-sm mt-4">
                                 <div className="space-y-1">
                                     <h4 className="font-semibold text-slate-800">Summary</h4>
-                                    <p className="text-slate-600">{selectedScan?.aiAnalysis.summary}</p>
+                                    <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.summary}</p>
                                 </div>
                                 {selectedScan?.aiAnalysis.criticalFindings && (<div className="space-y-1">
-                                    <h4 className="font-semibold text-red-600 flex items-center gap-1"><AlertTriangle className="w-4 h-4"/> Critical Findings</h4>
-                                    <p className="text-slate-600">{selectedScan?.aiAnalysis.criticalFindings}</p>
+                                    <h4 className="font-semibold text-red-600 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Critical Findings</h4>
+                                    <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.criticalFindings}</p>
                                 </div>)}
                                 {selectedScan?.aiAnalysis.keyFindings && (<div className="space-y-1">
-                                    <h4 className="font-semibold text-slate-800 flex items-center gap-1"><Microscope className="w-4 h-4"/> Key Findings</h4>
-                                    <p className="text-slate-600">{selectedScan?.aiAnalysis.keyFindings}</p>
+                                    <h4 className="font-semibold text-slate-800 flex items-center gap-2"><Microscope className="w-4 h-4"/> Key Findings</h4>
+                                    <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.keyFindings}</p>
                                 </div>)}
                                  {selectedScan?.aiAnalysis.healthIssues && (<div className="space-y-1">
                                     <h4 className="font-semibold text-slate-800">Potential Health Issues</h4>
-                                    <p className="text-slate-600">{selectedScan?.aiAnalysis.healthIssues}</p>
+                                    <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.healthIssues}</p>
                                 </div>)}
-                                 <div className="grid grid-cols-2 gap-4">
+                                 <div className="grid grid-cols-2 gap-4 pt-2">
                                     {selectedScan?.aiAnalysis.recommendedSpecialists && (<div className="space-y-1">
-                                        <h4 className="font-semibold text-slate-800 flex items-center gap-1"><Stethoscope className="w-4 h-4"/> Recommended Specialists</h4>
-                                        <p className="text-slate-600">{selectedScan?.aiAnalysis.recommendedSpecialists}</p>
+                                        <h4 className="font-semibold text-slate-800 flex items-center gap-2"><Stethoscope className="w-4 h-4"/> Specialists</h4>
+                                        <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.recommendedSpecialists}</p>
                                     </div>)}
                                     {selectedScan?.aiAnalysis.recommendedMedications && (<div className="space-y-1">
-                                        <h4 className="font-semibold text-slate-800 flex items-center gap-1"><Pill className="w-4 h-4"/> Suggested Medications</h4>
-                                        <p className="text-slate-600">{selectedScan?.aiAnalysis.recommendedMedications}</p>
+                                        <h4 className="font-semibold text-slate-800 flex items-center gap-2"><Pill className="w-4 h-4"/> Medications</h4>
+                                        <p className="text-slate-600 leading-relaxed">{selectedScan?.aiAnalysis.recommendedMedications}</p>
                                     </div>)}
                                  </div>
-                                  <div className="flex justify-between items-center bg-slate-100 p-2 rounded-md">
+                                  <div className="flex justify-between items-center bg-slate-100 p-3 rounded-lg mt-2">
                                     <h4 className="font-semibold text-slate-800">Urgency Classification</h4>
                                     <Badge variant={selectedScan?.aiAnalysis.urgencyClassification === 'Emergency' ? 'destructive' : 'secondary'}>{selectedScan?.aiAnalysis.urgencyClassification}</Badge>
                                   </div>
 
                             </div>
                         </div>
-                        <div className="flex-1 flex flex-col gap-2">
+                        <div className="flex-1 flex flex-col gap-2 pt-4 border-t">
                             <h3 className="font-semibold text-lg">Doctor's Notes</h3>
                             <Textarea 
                                 className="flex-1 resize-none" 
@@ -345,7 +343,7 @@ export default function PatientRecordPage() {
                         </div>
                     </div>
                 </div>
-                 <DialogFooter className="p-6 pt-0 border-t">
+                 <DialogFooter className="p-6 border-t bg-slate-50">
                     <Button variant="outline" onClick={() => setSelectedScan(null)}>Close</Button>
                     <Button onClick={handleSaveScanNotes}>Save Notes</Button>
                 </DialogFooter>
@@ -354,45 +352,45 @@ export default function PatientRecordPage() {
         
         {/* Report Viewer Dialog */}
         <Dialog open={!!selectedReport} onOpenChange={(open) => !open && setSelectedReport(null)}>
-            <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
-                <DialogHeader className="p-6 pb-0">
-                    <DialogTitle>Report Viewer: {selectedReport?.reportType}</DialogTitle>
+            <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0">
+                <DialogHeader className="p-6 border-b">
+                    <DialogTitle className="text-2xl font-bold">Report Viewer: {selectedReport?.reportType}</DialogTitle>
                     <DialogDescription>
                         Uploaded on {selectedReport ? new Date(selectedReport.uploadDate).toLocaleDateString() : ''} by {patient?.firstName} {patient?.lastName}
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-0 flex-1 min-h-0">
                     {/* Report Content Column */}
-                    <div className="relative bg-muted/50 rounded-lg flex items-center justify-center overflow-hidden border">
-                       {selectedReport && selectedReport.reportType.includes('Image') ? (
+                    <div className="relative bg-slate-100 flex items-center justify-center overflow-hidden border-r">
+                       {selectedReport && selectedReport.fileUrl.includes('image') ? (
                            <Image src={selectedReport.fileUrl} alt="Medical Report" fill className="object-contain" />
                        ) : (
                            <iframe src={selectedReport?.fileUrl} className="w-full h-full" title={selectedReport?.reportType}></iframe>
                        )}
                     </div>
                     {/* Analysis Column */}
-                    <div className="flex flex-col gap-4 overflow-y-auto">
+                    <div className="flex flex-col gap-4 overflow-y-auto p-6">
                         <div>
-                            <h3 className="font-semibold text-lg flex items-center gap-2"><BrainCircuit className="w-5 h-5 text-primary" /> AI Analysis</h3>
-                            <Separator className="my-2"/>
-                            <div className="space-y-4 text-sm">
+                            <h3 className="font-semibold text-lg flex items-center gap-2 mb-2"><BrainCircuit className="w-5 h-5 text-primary" /> AI Analysis</h3>
+                            <Separator/>
+                            <div className="space-y-5 text-sm mt-4">
                                 <div className="space-y-1">
                                     <h4 className="font-semibold text-slate-800">Summary</h4>
-                                    <p className="text-slate-600">{selectedReport?.aiSummary}</p>
+                                    <p className="text-slate-600 leading-relaxed">{selectedReport?.aiSummary}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <h4 className="font-semibold text-red-600 flex items-center gap-1"><AlertTriangle className="w-4 h-4"/> Potential Issues</h4>
-                                    <p className="text-slate-600">{selectedReport?.aiPotentialIssues}</p>
+                                    <h4 className="font-semibold text-red-600 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Potential Issues</h4>
+                                    <p className="text-slate-600 leading-relaxed">{selectedReport?.aiPotentialIssues}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <h4 className="font-semibold text-slate-800 flex items-center gap-1"><ArrowRight className="w-4 h-4 text-green-600"/> Next Steps</h4>
-                                    <p className="text-slate-600">{selectedReport?.aiNextSteps}</p>
+                                    <h4 className="font-semibold text-green-600 flex items-center gap-2"><ArrowRight className="w-4 h-4"/> Next Steps</h4>
+                                    <p className="text-slate-600 leading-relaxed">{selectedReport?.aiNextSteps}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                 <DialogFooter className="p-6 pt-0 border-t">
+                 <DialogFooter className="p-6 border-t bg-slate-50">
                     <Button variant="outline" onClick={() => setSelectedReport(null)}>Close</Button>
                 </DialogFooter>
             </DialogContent>
