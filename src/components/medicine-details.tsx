@@ -73,6 +73,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
     }
 
     const addList = (items: string[]) => {
+        if (!Array.isArray(items)) return;
       items.forEach((item) => {
         if (yPos > pdf.internal.pageSize.height - margin) {
           pdf.addPage()
@@ -91,7 +92,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
     addSection("Composition")
     addText(`Form: ${data.composition?.formulationType}`)
     addText("Active Ingredients:")
-    addList(data.composition?.activeIngredients ?? [])
+    addList(data.composition?.activeIngredients)
     if (data.composition?.inactiveIngredients?.length > 0) {
       addText("Inactive Ingredients:")
       addList(data.composition.inactiveIngredients)
@@ -115,9 +116,9 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
     // Side Effects
     addSection("Side Effects")
     addText("Common Side Effects:")
-    addList(data.sideEffects?.common ?? [])
+    addList(data.sideEffects?.common)
     addText("Serious Side Effects:")
-    addList(data.sideEffects?.serious ?? [])
+    addList(data.sideEffects?.serious)
 
     // Interactions
     addSection("Interactions")
@@ -432,7 +433,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Not Recommended For:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {(data.instructions?.contraindicationGroups ?? []).map((group, i) => (
+                              {(Array.isArray(data.instructions?.contraindicationGroups) ? data.instructions.contraindicationGroups : []).map((group, i) => (
                                 <li key={i}>{group}</li>
                               ))}
                             </ul>
@@ -452,7 +453,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           Disease Treatment
                         </h4>
                         <ul className="list-disc pl-5 text-muted-foreground">
-                          {(data.diseases ?? []).map((disease, i) => (
+                          {(Array.isArray(data.diseases) ? data.diseases : []).map((disease, i) => (
                             <li key={i}>{disease}</li>
                           ))}
                         </ul>
@@ -469,7 +470,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Common Side Effects:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {(data.sideEffects?.common ?? []).map((effect, i) => (
+                              {(Array.isArray(data.sideEffects?.common) ? data.sideEffects.common : []).map((effect, i) => (
                                 <li key={i}>{effect}</li>
                               ))}
                             </ul>
@@ -477,7 +478,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Uncommon Side Effects:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {(data.sideEffects?.uncommon ?? []).map((effect, i) => (
+                              {(Array.isArray(data.sideEffects?.uncommon) ? data.sideEffects.uncommon : []).map((effect, i) => (
                                 <li key={i}>{effect}</li>
                               ))}
                             </ul>
@@ -485,7 +486,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Serious Side Effects:</strong>
                             <ul className="list-disc pl-5 mt-1 text-red-600 dark:text-red-400">
-                              {(data.sideEffects?.serious ?? []).map((effect, i) => (
+                              {(Array.isArray(data.sideEffects?.serious) ? data.sideEffects.serious : []).map((effect, i) => (
                                 <li key={i}>{effect}</li>
                               ))}
                             </ul>
@@ -504,7 +505,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Drug Interactions:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {(data.interactions?.drugInteractions ?? []).map((interaction, i) => (
+                              {(Array.isArray(data.interactions?.drugInteractions) ? data.interactions.drugInteractions : []).map((interaction, i) => (
                                 <li key={i}>{interaction}</li>
                               ))}
                             </ul>
@@ -512,7 +513,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Food Interactions:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {(data.interactions?.foodInteractions ?? []).map((interaction, i) => (
+                              {(Array.isArray(data.interactions?.foodInteractions) ? data.interactions.foodInteractions : []).map((interaction, i) => (
                                 <li key={i}>{interaction}</li>
                               ))}
                             </ul>
@@ -520,7 +521,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Medical Conditions:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {(data.interactions?.conditions ?? []).map((condition, i) => (
+                              {(Array.isArray(data.interactions?.conditions) ? data.interactions.conditions : []).map((condition, i) => (
                                 <li key={i}>{condition}</li>
                               ))}
                             </ul>
@@ -667,3 +668,5 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
     </motion.div>
   )
 }
+
+    
