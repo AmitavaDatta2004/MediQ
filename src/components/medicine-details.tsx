@@ -144,7 +144,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
     addText(`Rating: ${data.rating}/5 (${data.reviewCount?.toLocaleString()} reviews)`)
 
     // Alternatives
-    if (data.substitutes?.length > 0) {
+    if (Array.isArray(data.substitutes) && data.substitutes.length > 0) {
       addSection("Alternative Medicines")
       data.substitutes.forEach((sub) => {
         addText(`${sub.name} (${sub.genericName})`)
@@ -157,12 +157,14 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
     // Nearby Pharmacies
     addSection("Nearby Pharmacies")
     addText(`Location: ${data.nearbyPharmacies?.location}`)
-    data.nearbyPharmacies?.pharmacies.forEach((pharmacy, index) => {
-      addText(`${index + 1}. ${pharmacy.name}`)
-      addText(`   Address: ${pharmacy.address}`)
-      addText(`   Contact: ${pharmacy.contact}`)
-      yPos += lineHeight / 2
-    })
+    if (Array.isArray(data.nearbyPharmacies?.pharmacies)) {
+      data.nearbyPharmacies.pharmacies.forEach((pharmacy, index) => {
+        addText(`${index + 1}. ${pharmacy.name}`)
+        addText(`   Address: ${pharmacy.address}`)
+        addText(`   Contact: ${pharmacy.contact}`)
+        yPos += lineHeight / 2
+      })
+    }
 
     // Footer
     const today = new Date().toLocaleDateString()
@@ -532,8 +534,8 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                   )}
                     {tab === "alternatives" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(data.substitutes ?? []).length > 0 ? (
-                        data.substitutes.map((substitute, index) => (
+                      {(Array.isArray(data.substitutes) ? data.substitutes : []).length > 0 ? (
+                        (Array.isArray(data.substitutes) ? data.substitutes : []).map((substitute, index) => (
                           <motion.div
                             key={index}
                             className="p-4 border dark:border-border rounded-lg bg-blue-50 dark:bg-blue-900/10 hover:shadow-md transition-all duration-300"
@@ -623,8 +625,8 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                         <strong>Location:</strong> {data.nearbyPharmacies?.location}
                       </p>
                       <div className="space-y-4">
-                        {(data.nearbyPharmacies?.pharmacies ?? []).length > 0 ? (
-                          data.nearbyPharmacies.pharmacies.map((pharmacy, index) => (
+                        {(Array.isArray(data.nearbyPharmacies?.pharmacies) ? data.nearbyPharmacies.pharmacies : []).length > 0 ? (
+                          (Array.isArray(data.nearbyPharmacies?.pharmacies) ? data.nearbyPharmacies.pharmacies : []).map((pharmacy, index) => (
                             <motion.div
                               key={index}
                               className="p-4 bg-white dark:bg-card/70 rounded-lg shadow-sm"
@@ -668,5 +670,3 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
     </motion.div>
   )
 }
-
-    
