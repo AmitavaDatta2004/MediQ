@@ -670,3 +670,5 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
     </motion.div>
   )
 }
+
+    
