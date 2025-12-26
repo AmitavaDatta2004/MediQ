@@ -1,3 +1,4 @@
+
 'use server';
 
 import { summarizeMedicalReport, type SummarizeMedicalReportInput } from '@/ai/flows/summarize-medical-report';
@@ -6,6 +7,7 @@ import { generateMedicineDetails } from '@/ai/flows/generate-medicine-details';
 import type { GenerateMedicineDetailsInput, DiseasePredictionInput } from '@/ai/schemas';
 import { readPrescriptionAndCheckInventory, type ReadPrescriptionInput } from '@/ai/flows/read-prescription-and-check-inventory';
 import { predictDiseaseFromPatientData } from '@/ai/flows/predict-disease';
+import { getFullMedicineDetails, type GetFullMedicineDetailsInput } from '@/ai/flows/get-full-medicine-details';
 
 export async function summarizeMedicalReportAction(input: SummarizeMedicalReportInput) {
     // In a real app, you'd add user authentication/authorization checks here.
@@ -31,4 +33,8 @@ export async function readPrescriptionAndCheckInventoryAction(input: ReadPrescri
 
 export async function predictDiseaseAction(input: DiseasePredictionInput) {
     return await predictDiseaseFromPatientData(input);
+}
+
+export async function getFullMedicineDetailsAction(input: GetFullMedicineDetailsInput) {
+    return await getFullMedicineDetails(input);
 }
