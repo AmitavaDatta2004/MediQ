@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { useParams } from 'next/navigation';
 import { addDoc } from 'firebase/firestore';
+import { Separator } from '@/components/ui/separator';
 
 export default function PatientRecordPage() {
     const { user } = useUser();
@@ -124,42 +125,36 @@ export default function PatientRecordPage() {
 
     return (
         <>
-        <div className="space-y-6">
-            <Card>
-                <CardHeader className="flex flex-row items-center gap-4">
-                     <Avatar className="h-20 w-20">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
+                <CardHeader className="bg-white border-b border-slate-100 p-8 flex-row items-center gap-6 space-y-0">
+                     <Avatar className="h-24 w-24 border-4 border-white shadow-md">
                         <AvatarImage src={patient?.avatarUrl} alt={patient?.firstName} data-ai-hint="person portrait" />
-                        <AvatarFallback>{patient?.firstName?.[0]}{patient?.lastName?.[0]}</AvatarFallback>
+                        <AvatarFallback className="text-3xl">{patient?.firstName?.[0]}{patient?.lastName?.[0]}</AvatarFallback>
                     </Avatar>
-                    <div>
-                        <CardTitle className="text-3xl">{patient?.firstName} {patient?.lastName}</CardTitle>
-                        <CardDescription>
+                    <div className="grid gap-1">
+                        <CardTitle className="text-4xl font-black text-slate-900 tracking-tight">{patient?.firstName} {patient?.lastName}</CardTitle>
+                        <CardDescription className="text-base">
                             DOB: {patient?.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : 'N/A'} | Email: {patient?.email}
                         </CardDescription>
                     </div>
+                    <div className="ml-auto">
+                        <Button onClick={() => setIsPrescribing(true)} className="rounded-lg h-11 px-6 font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Create Prescription
+                        </Button>
+                    </div>
                 </CardHeader>
-                <CardFooter>
-                    <Button onClick={() => setIsPrescribing(true)}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Create Prescription
-                    </Button>
-                </CardFooter>
-            </Card>
-
-            <Tabs defaultValue="reports">
-                <TabsList>
-                    <TabsTrigger value="reports">Medical Reports</TabsTrigger>
-                    <TabsTrigger value="scans">Scan Images</TabsTrigger>
-                    <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
-                </TabsList>
-                <TabsContent value="reports">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Medical Reports</CardTitle>
-                            <CardDescription>All uploaded and analyzed documents for {patient?.firstName}.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <Table>
+                <CardContent className="p-8">
+                     <Tabs defaultValue="reports">
+                        <TabsList className="bg-slate-100">
+                            <TabsTrigger value="reports">Medical Reports</TabsTrigger>
+                            <TabsTrigger value="scans">Scan Images</TabsTrigger>
+                            <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
+                        </TabsList>
+                        <Separator className="my-6"/>
+                        <TabsContent value="reports">
+                            <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Report</TableHead>
@@ -190,71 +185,56 @@ export default function PatientRecordPage() {
                                 </TableBody>
                             </Table>
                             {medicalReports?.length === 0 && <p className="text-center text-muted-foreground py-8">No medical reports found.</p>}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                <TabsContent value="scans">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Scan Images</CardTitle>
-                            <CardDescription>All uploaded and analyzed scans for {patient?.firstName}.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
+                        </TabsContent>
+                        <TabsContent value="scans">
                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {scanImages?.map(scan => (
-                                    <Card key={scan.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleOpenScanViewer(scan)}>
-                                        <CardHeader>
-                                            <div className="relative aspect-video w-full rounded-md overflow-hidden">
-                                                <Image src={scan.imageUrl} alt={`Scan from ${new Date(scan.uploadDate).toLocaleDateString()}`} fill className='object-cover' data-ai-hint="medical scan" />
+                                    <Card key={scan.id} className="cursor-pointer hover:shadow-lg transition-shadow group" onClick={() => handleOpenScanViewer(scan)}>
+                                        <CardHeader className="p-0">
+                                            <div className="relative aspect-video w-full rounded-t-lg overflow-hidden">
+                                                <Image src={scan.imageUrl} alt={`Scan from ${new Date(scan.uploadDate).toLocaleDateString()}`} fill className='object-cover group-hover:scale-105 transition-transform duration-300' data-ai-hint="medical scan" />
                                             </div>
                                         </CardHeader>
-                                        <CardContent>
-                                            <CardTitle className="text-lg">{scan.scanType}</CardTitle>
+                                        <CardContent className="p-4">
+                                            <CardTitle className="text-base">{scan.scanType}</CardTitle>
                                             <CardDescription>Uploaded on {new Date(scan.uploadDate).toLocaleDateString()}</CardDescription>
-                                            <div className="flex items-center justify-between mt-4">
-                                                <span className="text-sm font-medium">Urgency:</span>
+                                            <div className="flex items-center justify-between mt-3">
+                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Urgency:</span>
                                                 <Badge variant={scan.aiAnalysis.urgencyClassification === 'Emergency' || scan.aiAnalysis.urgencyClassification === 'Urgent' ? 'destructive' : 'secondary'}>{scan.aiAnalysis.urgencyClassification}</Badge>
                                             </div>
-                                             <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{scan.aiAnalysis.summary}</p>
+                                             <p className="text-sm text-muted-foreground mt-2 line-clamp-2 text-ellipsis">{scan.aiAnalysis.summary}</p>
                                         </CardContent>
                                     </Card>
                                 ))}
                              </div>
                              {scanImages?.length === 0 && <p className="text-center text-muted-foreground py-8">No scan images found.</p>}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                 <TabsContent value="prescriptions">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Prescription History</CardTitle>
-                            <CardDescription>All prescriptions issued to {patient?.firstName}.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
+                        </TabsContent>
+                         <TabsContent value="prescriptions">
                            {prescriptions?.map((prescription) => (
-                                <Card key={prescription.id} className="mb-4">
-                                    <CardHeader>
+                                <Card key={prescription.id} className="mb-4 bg-slate-50 border-slate-100 shadow-sm">
+                                    <CardHeader className="p-4">
                                         <CardTitle className="text-base flex justify-between">
-                                            <span>Prescription - {new Date(prescription.date).toLocaleDateString()}</span>
+                                            <span className="font-bold text-slate-800">Prescription - {new Date(prescription.date).toLocaleDateString()}</span>
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent>
-                                        <ul className="space-y-2">
+                                    <CardContent className="p-4 pt-0">
+                                        <ul className="space-y-3">
                                         {prescription.medicines.map((med, i) => (
-                                            <li key={i} className="text-sm">
-                                                <span className="font-semibold">{med.name}</span> - {med.dosage} ({med.frequency})
+                                            <li key={i} className="text-sm flex justify-between border-b border-slate-100 pb-2">
+                                                <span className="font-semibold text-slate-700">{med.name}</span>
+                                                <span className="text-muted-foreground">{med.dosage} ({med.frequency})</span>
                                             </li>
                                         ))}
                                         </ul>
-                                        {prescription.notes && <p className="text-xs text-muted-foreground mt-2">Notes: {prescription.notes}</p>}
+                                        {prescription.notes && <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-slate-100"><strong>Notes:</strong> {prescription.notes}</p>}
                                     </CardContent>
                                 </Card>
                             ))}
                             {prescriptions?.length === 0 && <p className="text-center text-muted-foreground py-8">No prescriptions found.</p>}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+            </Card>
         </div>
 
         {/* Prescription Dialog */}
