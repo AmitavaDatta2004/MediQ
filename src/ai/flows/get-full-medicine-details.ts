@@ -38,7 +38,7 @@ JSON Output:
 `;
     const { text } = await ai.generate({
       prompt: extractionPrompt,
-      model: 'googleai/gemini-2.5-flash-preview',
+      model: 'googleai/gemini-2.5-flash',
       config: {
         responseMimeType: 'application/json',
       },
