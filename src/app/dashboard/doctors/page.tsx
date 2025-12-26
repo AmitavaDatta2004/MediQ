@@ -1,3 +1,4 @@
+
 'use client';
 import { Star, MapPin, ShieldCheck, MoreHorizontal, ShieldX } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -42,7 +43,7 @@ export default function DoctorsPage() {
   const { data: consents } = useCollection<DataConsent>(consentsQuery);
 
   const grantedDoctorIds = useMemo(() => {
-    if (!consents) return [];
+    if (!consents) return new Set();
     return new Set(consents.filter(c => c.consentGiven).map(c => c.doctorId));
   }, [consents]);
 
