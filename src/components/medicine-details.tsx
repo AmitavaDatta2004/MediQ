@@ -327,7 +327,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Active Ingredients:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {(data.composition?.activeIngredients ?? []).map((ingredient, i) => (
+                              {(Array.isArray(data.composition?.activeIngredients) ? data.composition.activeIngredients : []).map((ingredient, i) => (
                                 <li key={i}>{ingredient}</li>
                               ))}
                             </ul>
@@ -335,7 +335,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Inactive Ingredients:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {(data.composition?.inactiveIngredients ?? []).map((ingredient, i) => (
+                              {(Array.isArray(data.composition?.inactiveIngredients) ? data.composition.inactiveIngredients : []).map((ingredient, i) => (
                                 <li key={i}>{ingredient}</li>
                               ))}
                             </ul>
@@ -534,8 +534,8 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                   )}
                     {tab === "alternatives" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(Array.isArray(data.substitutes) ? data.substitutes : []).length > 0 ? (
-                        (Array.isArray(data.substitutes) ? data.substitutes : []).map((substitute, index) => (
+                      {Array.isArray(data.substitutes) && data.substitutes.length > 0 ? (
+                        data.substitutes.map((substitute, index) => (
                           <motion.div
                             key={index}
                             className="p-4 border dark:border-border rounded-lg bg-blue-50 dark:bg-blue-900/10 hover:shadow-md transition-all duration-300"
@@ -625,8 +625,8 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                         <strong>Location:</strong> {data.nearbyPharmacies?.location}
                       </p>
                       <div className="space-y-4">
-                        {(Array.isArray(data.nearbyPharmacies?.pharmacies) ? data.nearbyPharmacies.pharmacies : []).length > 0 ? (
-                          (Array.isArray(data.nearbyPharmacies?.pharmacies) ? data.nearbyPharmacies.pharmacies : []).map((pharmacy, index) => (
+                        {Array.isArray(data.nearbyPharmacies?.pharmacies) && data.nearbyPharmacies.pharmacies.length > 0 ? (
+                          data.nearbyPharmacies.pharmacies.map((pharmacy, index) => (
                             <motion.div
                               key={index}
                               className="p-4 bg-white dark:bg-card/70 rounded-lg shadow-sm"

@@ -104,4 +104,3 @@ export async function getFullMedicineDetails(
   const result = await getFullMedicineDetailsFlow(input);
   return result as MedicineData;
 }
-
