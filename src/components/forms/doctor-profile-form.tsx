@@ -139,12 +139,12 @@ export default function DoctorProfileForm({ doctor }: { doctor: Doctor }) {
                         <Label htmlFor={`endTime-${index}`}>End Time</Label>
                         <Input id={`endTime-${index}`} type="time" value={slot.endTime || ''} onChange={(e) => handleAvailabilityChange(index, 'endTime', e.target.value)} />
                     </div>
-                    <Button variant="ghost" size="icon" className="mt-6 text-destructive" onClick={() => removeAvailabilitySlot(index)}>
+                    <Button type="button" variant="ghost" size="icon" className="mt-6 text-destructive" onClick={() => removeAvailabilitySlot(index)}>
                         <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
-                <Button variant="outline" onClick={addAvailabilitySlot}><PlusCircle className="mr-2 h-4 w-4" /> Add Time Slot</Button>
+                <Button type="button" variant="outline" onClick={addAvailabilitySlot}><PlusCircle className="mr-2 h-4 w-4" /> Add Time Slot</Button>
               </div>
             </div>
           </form>
