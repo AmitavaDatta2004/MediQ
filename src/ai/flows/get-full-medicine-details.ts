@@ -45,7 +45,7 @@ JSON Output:
     });
 
     try {
-        const cleanedText = text().replace(/```json\n|```/g, '').trim();
+        const cleanedText = text.replace(/```json\n|```/g, '').trim();
         return JSON.parse(cleanedText);
     } catch (e) {
         console.error("Failed to parse extracted JSON:", e);
@@ -88,7 +88,7 @@ const getFullMedicineDetailsFlow = ai.defineFlow(
       prompt: generationPrompt,
     });
     
-    const markdownDetails = text();
+    const markdownDetails = text;
 
     // Step 2: Use the tool to extract the generated markdown into structured JSON.
     const structuredData = await extractMedicineDataTool({ markdownText: markdownDetails });
