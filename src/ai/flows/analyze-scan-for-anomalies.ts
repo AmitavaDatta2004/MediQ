@@ -47,19 +47,33 @@ const textAnalysisPrompt = ai.definePrompt({
   name: 'textAnalysisPrompt',
   input: {schema: TextAnalysisInputSchema},
   output: {schema: TextAnalysisOutputSchema},
-  prompt: `You are an expert AI radiologist. Analyze the provided medical scan ({{{scanType}}}) and return a detailed JSON report.
+  prompt: `
+    You are an expert medical imaging assistant. 
+    Analyze the provided medical image (X-ray, MRI, CT, Skin Lesion, or Document).
 
-**Instructions:**
-1.  **Summarize:** Briefly explain what the scan shows in simple terms. If it's impossible to make a diagnosis from a single image, state that clearly.
-2.  **Findings:** Identify critical and key findings. For each finding, provide its label, confidence, a brief explanation, and a precise bounding box. The bounding box coordinates [ymin, xmin, ymax, xmax] MUST accurately cover the size and location of the specific anomaly on the scan. Do not use generic sizes. If there are no findings, return an empty array for 'findings'.
-3.  **Recommendations:** Suggest potential health issues, specialists, and medications based on the scan.
-4.  **Classify:** Determine the urgency level.
-5.  **Disclaimer**: Add a standard medical disclaimer: "This is an AI-generated analysis and is not a substitute for professional medical advice. Consult a licensed radiologist for an accurate diagnosis."
+    Tasks:
+    1. Identify any visually suspicious regions, anomalies, or key medical text/values.
+    2. If it is an image scan, estimate the bounding box coordinates for these regions.
+    3. Provide a brief summary of findings.
 
-**Patient Context:** {{{patientDetails}}}
-**Scan Image:** {{media url=imageUrl}}
+    IMPORTANT: 
+    - Coordinates must be normalized (0.0 to 1.0) in the order [ymin, xmin, ymax, xmax].
+    - This is for educational/screening purposes only. Do not provide a definitive diagnosis.
 
-Your response MUST be a JSON object conforming to the 'TextAnalysisOutputSchema'.`,
+    Return JSON matching this schema:
+    {
+      "summary": "string",
+      "findings": [
+        {
+          "label": "string (e.g. 'Possible Nodule', 'Fracture', 'High Glucose Value')",
+          "confidence": "string (e.g. 'High', 'Medium')",
+          "explanation": "string",
+          "box_2d": { "ymin": number, "xmin": number, "ymax": number, "xmax": number } // Optional if not applicable
+        }
+      ],
+      "disclaimer": "string"
+    }
+  `,
 });
 
 /**
