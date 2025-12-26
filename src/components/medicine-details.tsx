@@ -85,65 +85,65 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
 
     // Title and Basic Info
     addTitle(`${data.name} (${data.genericName})`)
-    addText(`Manufacturer: ${data.manufacturer.name}, ${data.manufacturer.country}`)
+    addText(`Manufacturer: ${data.manufacturer?.name}, ${data.manufacturer?.country}`)
 
     // Composition
     addSection("Composition")
-    addText(`Form: ${data.composition.formulationType}`)
+    addText(`Form: ${data.composition?.formulationType}`)
     addText("Active Ingredients:")
-    addList(data.composition.activeIngredients)
-    if (data.composition.inactiveIngredients.length > 0) {
+    addList(data.composition?.activeIngredients ?? [])
+    if (data.composition?.inactiveIngredients?.length > 0) {
       addText("Inactive Ingredients:")
       addList(data.composition.inactiveIngredients)
     }
 
     // Function
     addSection("Function")
-    addText(`Primary Action: ${data.function.primaryAction}`)
-    addText(`Mechanism: ${data.function.mechanismOfAction}`)
-    addText(`Class: ${data.function.therapeuticClass}`)
+    addText(`Primary Action: ${data.function?.primaryAction}`)
+    addText(`Mechanism: ${data.function?.mechanismOfAction}`)
+    addText(`Class: ${data.function?.therapeuticClass}`)
 
     // Dosage
     addSection("Dosage Information")
-    addText(`Adult Dose: ${data.dosage.standardDose.adult}`)
-    addText(`Pediatric Dose: ${data.dosage.standardDose.pediatric}`)
-    addText(`Elderly Dose: ${data.dosage.standardDose.elderly}`)
-    addText(`Maximum Daily Dose: ${data.dosage.maximumDailyDose}`)
-    addText(`Duration: ${data.dosage.durationOfTreatment}`)
-    addText(`Timing: ${data.dosage.timingConsiderations}`)
+    addText(`Adult Dose: ${data.dosage?.standardDose?.adult}`)
+    addText(`Pediatric Dose: ${data.dosage?.standardDose?.pediatric}`)
+    addText(`Elderly Dose: ${data.dosage?.standardDose?.elderly}`)
+    addText(`Maximum Daily Dose: ${data.dosage?.maximumDailyDose}`)
+    addText(`Duration: ${data.dosage?.durationOfTreatment}`)
+    addText(`Timing: ${data.dosage?.timingConsiderations}`)
 
     // Side Effects
     addSection("Side Effects")
     addText("Common Side Effects:")
-    addList(data.sideEffects.common)
+    addList(data.sideEffects?.common ?? [])
     addText("Serious Side Effects:")
-    addList(data.sideEffects.serious)
+    addList(data.sideEffects?.serious ?? [])
 
     // Interactions
     addSection("Interactions")
-    if (data.interactions.drugInteractions.length > 0) {
+    if (data.interactions?.drugInteractions?.length > 0) {
       addText("Drug Interactions:")
       addList(data.interactions.drugInteractions)
     }
-    if (data.interactions.foodInteractions.length > 0) {
+    if (data.interactions?.foodInteractions?.length > 0) {
       addText("Food Interactions:")
       addList(data.interactions.foodInteractions)
     }
 
     // Storage
     addSection("Storage and Handling")
-    addText(`Temperature: ${data.storage.temperature}`)
-    addText(`Conditions: ${data.storage.specialConditions}`)
-    addText(`Expiry: ${data.storage.expiryGuidelines}`)
+    addText(`Temperature: ${data.storage?.temperature}`)
+    addText(`Conditions: ${data.storage?.specialConditions}`)
+    addText(`Expiry: ${data.storage?.expiryGuidelines}`)
 
     // Price and Rating
     addSection("Price Information")
-    addText(`Retail Price: ${data.price.averageRetailPrice}`)
-    addText(`Unit Price: ${data.price.unitPrice}`)
-    addText(`Rating: ${data.rating}/5 (${data.reviewCount.toLocaleString()} reviews)`)
+    addText(`Retail Price: ${data.price?.averageRetailPrice}`)
+    addText(`Unit Price: ${data.price?.unitPrice}`)
+    addText(`Rating: ${data.rating}/5 (${data.reviewCount?.toLocaleString()} reviews)`)
 
     // Alternatives
-    if (data.substitutes.length > 0) {
+    if (data.substitutes?.length > 0) {
       addSection("Alternative Medicines")
       data.substitutes.forEach((sub) => {
         addText(`${sub.name} (${sub.genericName})`)
@@ -155,8 +155,8 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
 
     // Nearby Pharmacies
     addSection("Nearby Pharmacies")
-    addText(`Location: ${data.nearbyPharmacies.location}`)
-    data.nearbyPharmacies.pharmacies.forEach((pharmacy, index) => {
+    addText(`Location: ${data.nearbyPharmacies?.location}`)
+    data.nearbyPharmacies?.pharmacies.forEach((pharmacy, index) => {
       addText(`${index + 1}. ${pharmacy.name}`)
       addText(`   Address: ${pharmacy.address}`)
       addText(`   Contact: ${pharmacy.contact}`)
@@ -319,12 +319,12 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                         </h4>
                         <div className="space-y-2 text-muted-foreground">
                           <p>
-                            <strong>Form:</strong> {data.composition.formulationType}
+                            <strong>Form:</strong> {data.composition?.formulationType}
                           </p>
                           <div>
                             <strong>Active Ingredients:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {data.composition.activeIngredients.map((ingredient, i) => (
+                              {(data.composition?.activeIngredients ?? []).map((ingredient, i) => (
                                 <li key={i}>{ingredient}</li>
                               ))}
                             </ul>
@@ -332,7 +332,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Inactive Ingredients:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {data.composition.inactiveIngredients.map((ingredient, i) => (
+                              {(data.composition?.inactiveIngredients ?? []).map((ingredient, i) => (
                                 <li key={i}>{ingredient}</li>
                               ))}
                             </ul>
@@ -349,13 +349,13 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                         </h4>
                         <div className="space-y-2 text-muted-foreground">
                           <p>
-                            <strong>Primary Action:</strong> {data.function.primaryAction}
+                            <strong>Primary Action:</strong> {data.function?.primaryAction}
                           </p>
                           <p>
-                            <strong>Mechanism:</strong> {data.function.mechanismOfAction}
+                            <strong>Mechanism:</strong> {data.function?.mechanismOfAction}
                           </p>
                           <p>
-                            <strong>Class:</strong> {data.function.therapeuticClass}
+                            <strong>Class:</strong> {data.function?.therapeuticClass}
                           </p>
                         </div>
                       </motion.div>
@@ -368,10 +368,10 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           Manufacturer
                         </h4>
                         <p className="text-muted-foreground">
-                          <strong>Company:</strong> {data.manufacturer.name}
+                          <strong>Company:</strong> {data.manufacturer?.name}
                         </p>
                         <p className="text-muted-foreground">
-                          <strong>Country:</strong> {data.manufacturer.country}
+                          <strong>Country:</strong> {data.manufacturer?.country}
                         </p>
                       </motion.div>
                     </>
@@ -391,27 +391,27 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                             <strong>Standard Dosage:</strong>
                             <ul className="list-disc pl-5 mt-1">
                               <li>
-                                <strong>Adults:</strong> {data.dosage.standardDose.adult}
+                                <strong>Adults:</strong> {data.dosage?.standardDose?.adult}
                               </li>
                               <li>
-                                <strong>Children:</strong> {data.dosage.standardDose.pediatric}
+                                <strong>Children:</strong> {data.dosage?.standardDose?.pediatric}
                               </li>
                               <li>
-                                <strong>Elderly:</strong> {data.dosage.standardDose.elderly}
+                                <strong>Elderly:</strong> {data.dosage?.standardDose?.elderly}
                               </li>
                             </ul>
                           </div>
                           <p>
-                            <strong>Maximum Daily Dose:</strong> {data.dosage.maximumDailyDose}
+                            <strong>Maximum Daily Dose:</strong> {data.dosage?.maximumDailyDose}
                           </p>
                           <p>
-                            <strong>Duration:</strong> {data.dosage.durationOfTreatment}
+                            <strong>Duration:</strong> {data.dosage?.durationOfTreatment}
                           </p>
                           <p>
-                            <strong>Timing:</strong> {data.dosage.timingConsiderations}
+                            <strong>Timing:</strong> {data.dosage?.timingConsiderations}
                           </p>
                           <p>
-                            <strong>Missed Dose:</strong> {data.dosage.missedDose}
+                            <strong>Missed Dose:</strong> {data.dosage?.missedDose}
                           </p>
                         </div>
                       </motion.div>
@@ -424,15 +424,15 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           Instructions
                         </h4>
                         <div className="space-y-2 text-muted-foreground">
-                          <p>{data.instructions.generalGuidelines}</p>
+                          <p>{data.instructions?.generalGuidelines}</p>
                           <div>
                             <strong>Precautions:</strong>
-                            <p className="mt-1">{data.instructions.specialPrecautions}</p>
+                            <p className="mt-1">{data.instructions?.specialPrecautions}</p>
                           </div>
                           <div>
                             <strong>Not Recommended For:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {data.instructions.contraindicationGroups.map((group, i) => (
+                              {(data.instructions?.contraindicationGroups ?? []).map((group, i) => (
                                 <li key={i}>{group}</li>
                               ))}
                             </ul>
@@ -452,7 +452,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           Disease Treatment
                         </h4>
                         <ul className="list-disc pl-5 text-muted-foreground">
-                          {data.diseases.map((disease, i) => (
+                          {(data.diseases ?? []).map((disease, i) => (
                             <li key={i}>{disease}</li>
                           ))}
                         </ul>
@@ -469,7 +469,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Common Side Effects:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {data.sideEffects.common.map((effect, i) => (
+                              {(data.sideEffects?.common ?? []).map((effect, i) => (
                                 <li key={i}>{effect}</li>
                               ))}
                             </ul>
@@ -477,7 +477,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Uncommon Side Effects:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {data.sideEffects.uncommon.map((effect, i) => (
+                              {(data.sideEffects?.uncommon ?? []).map((effect, i) => (
                                 <li key={i}>{effect}</li>
                               ))}
                             </ul>
@@ -485,7 +485,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Serious Side Effects:</strong>
                             <ul className="list-disc pl-5 mt-1 text-red-600 dark:text-red-400">
-                              {data.sideEffects.serious.map((effect, i) => (
+                              {(data.sideEffects?.serious ?? []).map((effect, i) => (
                                 <li key={i}>{effect}</li>
                               ))}
                             </ul>
@@ -504,7 +504,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Drug Interactions:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {data.interactions.drugInteractions.map((interaction, i) => (
+                              {(data.interactions?.drugInteractions ?? []).map((interaction, i) => (
                                 <li key={i}>{interaction}</li>
                               ))}
                             </ul>
@@ -512,7 +512,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Food Interactions:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {data.interactions.foodInteractions.map((interaction, i) => (
+                              {(data.interactions?.foodInteractions ?? []).map((interaction, i) => (
                                 <li key={i}>{interaction}</li>
                               ))}
                             </ul>
@@ -520,7 +520,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           <div>
                             <strong>Medical Conditions:</strong>
                             <ul className="list-disc pl-5 mt-1">
-                              {data.interactions.conditions.map((condition, i) => (
+                              {(data.interactions?.conditions ?? []).map((condition, i) => (
                                 <li key={i}>{condition}</li>
                               ))}
                             </ul>
@@ -531,7 +531,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                   )}
                     {tab === "alternatives" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {data.substitutes.length > 0 ? (
+                      {(data.substitutes ?? []).length > 0 ? (
                         data.substitutes.map((substitute, index) => (
                           <motion.div
                             key={index}
@@ -560,10 +560,10 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           Price Information
                         </h4>
                         <p className="text-muted-foreground">
-                          <strong>Retail Price:</strong> {data.price.averageRetailPrice}
+                          <strong>Retail Price:</strong> {data.price?.averageRetailPrice}
                         </p>
                         <p className="text-muted-foreground">
-                          <strong>Unit Price:</strong> {data.price.unitPrice}
+                          <strong>Unit Price:</strong> {data.price?.unitPrice}
                         </p>
                       </motion.div>
                       <motion.div
@@ -575,10 +575,10 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           Storage Requirements
                         </h4>
                         <p className="text-muted-foreground">
-                          <strong>Temperature:</strong> {data.storage.temperature}
+                          <strong>Temperature:</strong> {data.storage?.temperature}
                         </p>
                         <p className="text-muted-foreground">
-                          <strong>Conditions:</strong> {data.storage.specialConditions}
+                          <strong>Conditions:</strong> {data.storage?.specialConditions}
                         </p>
                       </motion.div>
                       <motion.div
@@ -590,7 +590,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                           Expiry Guidelines
                         </h4>
                         <p className="text-muted-foreground whitespace-pre-wrap">
-                          {data.storage.expiryGuidelines}
+                          {data.storage?.expiryGuidelines}
                         </p>
                       </motion.div>
                       <motion.div
@@ -604,7 +604,7 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                         <div className="flex items-center">
                           <Star className="h-6 w-6 text-yellow-400 fill-current" />
                           <span className="ml-2 text-lg font-semibold">{data.rating}/5</span>
-                          <span className="ml-4 text-muted-foreground">({data.reviewCount.toLocaleString()} reviews)</span>
+                          <span className="ml-4 text-muted-foreground">({data.reviewCount?.toLocaleString()} reviews)</span>
                         </div>
                       </motion.div>
                     </>
@@ -619,10 +619,10 @@ export function MedicineDetails({ data }: { data: MedicineData }) {
                         Nearby Pharmacies
                       </h4>
                       <p className="mb-4 text-muted-foreground">
-                        <strong>Location:</strong> {data.nearbyPharmacies.location}
+                        <strong>Location:</strong> {data.nearbyPharmacies?.location}
                       </p>
                       <div className="space-y-4">
-                        {data.nearbyPharmacies.pharmacies.length > 0 ? (
+                        {(data.nearbyPharmacies?.pharmacies ?? []).length > 0 ? (
                           data.nearbyPharmacies.pharmacies.map((pharmacy, index) => (
                             <motion.div
                               key={index}
