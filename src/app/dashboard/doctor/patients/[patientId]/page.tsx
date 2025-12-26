@@ -308,7 +308,7 @@ export default function PatientRecordPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 p-6">
                     {/* Image Column */}
                     <div className="relative bg-muted/50 rounded-lg flex items-center justify-center overflow-hidden border">
-                       {selectedScan && <Image src={selectedScan.imageUrl} alt="Medical Scan" layout="fill" objectFit="contain" />}
+                       {selectedScan && <Image src={selectedScan.imageUrl} alt="Medical Scan" fill className="object-contain" />}
                     </div>
                     {/* Analysis & Notes Column */}
                     <div className="flex flex-col gap-4 overflow-y-auto">
